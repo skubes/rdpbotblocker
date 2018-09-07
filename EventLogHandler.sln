@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.27703.2042
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventLogHandler", "EventLogHandler\EventLogHandler.csproj", "{13F28D40-F175-47D2-9870-0C88C2DE15B5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RDPBotBlocker", "RDPBotBlocker\RDPBotBlocker.csproj", "{F5CF2918-E489-47F4-8AF1-954C6D6D86CE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{13F28D40-F175-47D2-9870-0C88C2DE15B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{13F28D40-F175-47D2-9870-0C88C2DE15B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{13F28D40-F175-47D2-9870-0C88C2DE15B5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5CF2918-E489-47F4-8AF1-954C6D6D86CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5CF2918-E489-47F4-8AF1-954C6D6D86CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5CF2918-E489-47F4-8AF1-954C6D6D86CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5CF2918-E489-47F4-8AF1-954C6D6D86CE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
