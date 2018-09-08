@@ -79,7 +79,7 @@ class EventLogHandler
             Domain = (xml.SelectSingleNode("//a:Data[@Name=\"TargetDomainName\"]", ns))?.InnerText
         };
 
-        if (isLocalAddress(isf.Ip))
+        if (IsLocalAddress(isf.Ip))
         {
             WriteInfo("Local address found. Skipping.");
             return;
@@ -89,7 +89,7 @@ class EventLogHandler
     }
 
 
-    public static bool isLocalAddress(string ip)
+    public static bool IsLocalAddress(string ip)
     {
 
         return _localAddressRE.IsMatch(ip);
