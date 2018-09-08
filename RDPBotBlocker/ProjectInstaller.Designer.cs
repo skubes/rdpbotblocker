@@ -1,4 +1,4 @@
-﻿namespace RDPBotBlocker
+﻿namespace SCAdaptiveFirewall
 {
     partial class ProjectInstaller
     {

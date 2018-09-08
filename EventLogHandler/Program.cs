@@ -29,8 +29,6 @@ class EventLogHandler
                     EventLogEventRead);
             seclogwatcher.Enabled = true;
 
-            WriteInfo("Waiting for events...");
-            Console.ReadLine();
         }
         finally
         {
@@ -44,7 +42,7 @@ class EventLogHandler
         }
     }
 
-    public static void WriteInfo(string infomessage)
+    static void WriteInfo(string infomessage)
     {
         Console.WriteLine($"[{DateTime.Now.ToString("o").Replace('T',' ')}] {infomessage}");
     }
@@ -62,7 +60,7 @@ class EventLogHandler
             ProcessEvent(arg.EventRecord);         
         }
     }
-    public static void ProcessEvent(EventRecord er) {
+    static void ProcessEvent(EventRecord er) {
 
         WriteInfo($"Received event from the subscription.");
 
@@ -74,14 +72,20 @@ class EventLogHandler
         var isf = new InterestingSecurityFailure
         {
             Date = er.TimeCreated,
-            Ip = (xml.SelectSingleNode("//a:Data[@Name=\"IpAddress\"]", ns)).InnerText,
+            Ip = (xml.SelectSingleNode("//a:Data[@Name=\"IpAddress\"]", ns))?.InnerText,
             UserName = (xml.SelectSingleNode("//a:Data[@Name=\"TargetUserName\"]", ns))?.InnerText,
             Domain = (xml.SelectSingleNode("//a:Data[@Name=\"TargetDomainName\"]", ns))?.InnerText
         };
 
+        if (isf.Ip == null)
+        {
+            WriteInfo("Couldn't read IP address from event.  Nothing to do.");
+            return;
+        }
+
         if (IsLocalAddress(isf.Ip))
         {
-            WriteInfo("Local address found. Skipping.");
+            WriteInfo($"Local address found [{isf.Ip}]. Skipping.");
             return;
         }
 
@@ -89,14 +93,14 @@ class EventLogHandler
     }
 
 
-    public static bool IsLocalAddress(string ip)
+    static bool IsLocalAddress(string ip)
     {
 
         return _localAddressRE.IsMatch(ip);
 
     }
 
-    public static void blockIpIfNecessary(InterestingSecurityFailure isf)
+    static void blockIpIfNecessary(InterestingSecurityFailure isf)
     {
         if (!_ipdeets.ContainsKey(isf.Ip))
         {
@@ -117,10 +121,10 @@ class EventLogHandler
 
     // TODO: Generalize for private IP ranges
     // instead of my house's range.
-    private static Regex _localAddressRE = new Regex(@"192\.168\.[0-5]\.\d{1,3}",
+    static Regex _localAddressRE = new Regex(@"192\.168\.[0-5]\.\d{1,3}",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    private static IPInfo _ipdeets = new IPInfo();
+    static IPInfo _ipdeets = new IPInfo();
 
     public class InterestingSecurityFailure
     {

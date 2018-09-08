@@ -1,6 +1,6 @@
-﻿namespace RDPBotBlocker
+﻿namespace SCAdaptiveFirewall
 {
-    partial class Service1
+    partial class AdaptiveFirewall
     {
         /// <summary> 
         /// Required designer variable.

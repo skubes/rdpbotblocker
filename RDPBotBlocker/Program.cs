@@ -5,7 +5,7 @@ using System.ServiceProcess;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RDPBotBlocker
+namespace SCAdaptiveFirewall
 {
     static class Program
     {
@@ -17,7 +17,7 @@ namespace RDPBotBlocker
             ServiceBase[] ServicesToRun;
             ServicesToRun = new ServiceBase[]
             {
-                new Service1()
+                new AdaptiveFirewall()
             };
             ServiceBase.Run(ServicesToRun);
         }
