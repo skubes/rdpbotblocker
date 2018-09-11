@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("RDPBotBlocker")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("Adaptive Firewall")]
+[assembly: AssemblyDescription("Monitors security log for login failures from the internet and blocks suspect ips")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("RDPBotBlocker")]
+[assembly: AssemblyCompany("SC Enterprises")]
+[assembly: AssemblyProduct("Adaptive Firewall")]
 [assembly: AssemblyCopyright("Copyright ©  2018")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
