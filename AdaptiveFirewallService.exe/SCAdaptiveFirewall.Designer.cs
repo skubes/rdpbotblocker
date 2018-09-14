@@ -29,6 +29,11 @@
                 {
                     _seclogwatcher.Dispose();
                 }
+
+                if (_rdplogwatcher != null)
+                {
+                    _rdplogwatcher.Dispose();
+                }
             }
             base.Dispose(disposing);
         }

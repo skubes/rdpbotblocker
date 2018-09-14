@@ -9,6 +9,7 @@ using System.Xml;
 using System.Management.Automation;
 using System.Collections.ObjectModel;
 using IPInfo = System.Collections.Generic.Dictionary<System.String, System.Collections.Generic.List<SCAdaptiveFirewall.AdaptiveFirewall.InterestingSecurityFailure>>;
+using System.Threading;
 
 namespace SCAdaptiveFirewall
 {
@@ -32,6 +33,15 @@ namespace SCAdaptiveFirewall
                 new EventHandler<EventRecordWrittenEventArgs>(
                     OnEventRecordWritten);
 
+            // Subscribe to RDP event log event 140s
+            subquery = new EventLogQuery(
+                "Microsoft-Windows-RemoteDesktopServices-RdpCoreTS/Operational", 
+                PathType.LogName, "*[System/EventID=140]");
+            _rdplogwatcher = new EventLogWatcher(subquery);
+            _rdplogwatcher.EventRecordWritten +=
+                new EventHandler<EventRecordWrittenEventArgs>(
+                    OnEventRecordWritten);
+
             var logpath = Path.Combine(Path.GetTempPath(), "AdaptiveFirewall.log");
             _log = new StreamWriter(logpath, true)
             {
@@ -42,11 +52,13 @@ namespace SCAdaptiveFirewall
         protected override void OnStart(string[] args)
         {
             _seclogwatcher.Enabled = true;
+            _rdplogwatcher.Enabled = true;
         }
 
         protected override void OnStop()
         {
             _seclogwatcher.Enabled = false;
+            _rdplogwatcher.Enabled = false;
         }
         /// <summary>
         /// Writes line of output to diag log in
@@ -55,7 +67,11 @@ namespace SCAdaptiveFirewall
         /// <param name="infomessage"></param>
         void WriteInfo(string infomessage)
         {
-            _log.WriteLine($"[{DateTime.Now.ToString("o").Replace('T', ' ')}] {infomessage}");
+            lock (_writerlock)
+            {
+                _log.WriteLine($"[{DateTime.Now.ToString("o").Replace('T', ' ')} TID: {Thread.CurrentThread.ManagedThreadId}] {infomessage}");
+            }
+            
         }
 
         /// <summary>
@@ -76,7 +92,7 @@ namespace SCAdaptiveFirewall
             }
         }
         /// <summary>
-        /// Runs commmands or sripts in a new
+        /// Runs commmands or script in a new
         /// PowerShell pipeline.
         /// </summary>
         /// <param name="script"></param>
@@ -92,12 +108,15 @@ namespace SCAdaptiveFirewall
                     instance.AddParameter(p.Key, p.Value);
                 }
                 var objects = instance.Invoke();
-                if (instance.Streams.Error.Count > 0)
+
+                foreach (var e in instance.Streams.Error)
                 {
-                    foreach (var e in instance.Streams.Error)
-                    {
-                        WriteInfo($"{e}");
-                    }
+                    WriteInfo($"{e}");
+                }
+                
+                foreach (var i in instance.Streams.Information)
+                {
+                    WriteInfo($"{i}");
                 }
                 return objects;
             }
@@ -109,7 +128,7 @@ namespace SCAdaptiveFirewall
         /// <param name="er"></param>
         void ProcessEvent(EventRecord er)
         {
-            WriteInfo("Received event from the subscription.");
+            WriteInfo($"Received event {er.Id} from the subscription.");
 
             var xml = new XmlDocument();
             xml.LoadXml(er.ToXml());
@@ -119,10 +138,20 @@ namespace SCAdaptiveFirewall
             var isf = new InterestingSecurityFailure
             {
                 Date = er.TimeCreated,
-                Ip = (xml.SelectSingleNode("//a:Data[@Name=\"IpAddress\"]", ns))?.InnerText,
-                UserName = (xml.SelectSingleNode("//a:Data[@Name=\"TargetUserName\"]", ns))?.InnerText,
-                Domain = (xml.SelectSingleNode("//a:Data[@Name=\"TargetDomainName\"]", ns))?.InnerText
+                EventId = er.Id
             };
+
+            switch (er.Id)
+            {
+                case 4625:
+                    isf.Ip = (xml.SelectSingleNode("//a:Data[@Name=\"IpAddress\"]", ns))?.InnerText;
+                    isf.UserName = (xml.SelectSingleNode("//a:Data[@Name=\"TargetUserName\"]", ns))?.InnerText;
+                    isf.Domain = (xml.SelectSingleNode("//a:Data[@Name=\"TargetDomainName\"]", ns))?.InnerText;
+                    break;
+                case 140:
+                    isf.Ip = (xml.SelectSingleNode("//a:Data[@Name=\"IPString\"]", ns))?.InnerText;
+                    break;
+            }
 
             if (isf.Ip == null)
             {
@@ -159,22 +188,35 @@ namespace SCAdaptiveFirewall
         /// <param name="isf"></param>
         void BlockIpIfNecessary(InterestingSecurityFailure isf)
         {
-            PruneIpInfo();
 
-            if (!_ipdeets.ContainsKey(isf.Ip))
+            // just straight up block event 140 ips for now!! as a test:)
+            if (isf.EventId == 140)
             {
-                WriteInfo($"Adding record to dictionary for {isf.Ip}");
-                _ipdeets[isf.Ip] = new List<InterestingSecurityFailure>();
-            }
-            _ipdeets[isf.Ip].Add(isf);
-            var failures = _ipdeets[isf.Ip].Count;
-            WriteInfo($"IP [{isf.Ip}]. Failure count in last 1 hour [{failures}].");
-            WriteInfo($"User [{isf.UserName}]. Domain [{isf.Domain}].");
-            if (failures >= FailureCountThreshold)
-            {
-                WriteInfo($"Need to block ip {isf.Ip}");
+                WriteInfo($"Blocking ip [{isf.Ip}]");
                 BlockIp(isf.Ip);
+                return;
             }
+
+            int secfailures;
+            lock (_lock)
+            {
+                PruneIpInfo();
+
+                if (!_ipdeets.ContainsKey(isf.Ip))
+                {
+                    _ipdeets[isf.Ip] = new List<InterestingSecurityFailure>();
+                }
+                _ipdeets[isf.Ip].Add(isf);
+            
+                 secfailures = _ipdeets[isf.Ip].Count;
+            }
+                WriteInfo($"IP [{isf.Ip}]. Security log failure count in last 1 hour [{secfailures}].");
+                WriteInfo($"User [{isf.UserName}]. Domain [{isf.Domain}].");
+                if (secfailures >= SecFailureCountThreshold)
+                {
+                    WriteInfo($"Need to block ip {isf.Ip}");
+                    BlockIp(isf.Ip);
+                }
         }
 
         private void PruneIpInfo()
@@ -202,10 +244,13 @@ namespace SCAdaptiveFirewall
 
         IPInfo _ipdeets = new IPInfo();
 
-        EventLogWatcher _seclogwatcher;
+        readonly EventLogWatcher _seclogwatcher;
+        readonly EventLogWatcher _rdplogwatcher;
+        readonly Object _lock = new object();
+        readonly Object _writerlock = new object();
         StreamWriter _log;
 
-        public int FailureCountThreshold { get; set; } = 5;
+        public int SecFailureCountThreshold { get; } = 5;
 
         public class InterestingSecurityFailure
         {
@@ -213,6 +258,7 @@ namespace SCAdaptiveFirewall
             public DateTime? Date { get; set; }
             public string UserName { get; set; }
             public string Domain { get; set; }
+            public int EventId { get; set; }
         }
  
 
@@ -224,7 +270,7 @@ namespace SCAdaptiveFirewall
         )
         function Info {
             Param($InfoMessage)
-                Write-Information ""[$(Get-Date -Format 'O')] $InfoMessage""
+                Write-Information ""{PowerShell script} $InfoMessage""
         }
 
         $InformationPreference = 'Continue'
@@ -241,6 +287,9 @@ namespace SCAdaptiveFirewall
                 $distinctIps.Add($_) | Out-Null
         }
         $distinctIps.Add($IpAddress) | Out-Null
-        Set-NetFirewallAddressFilter -InputObject $filter -RemoteAddress $distinctIps";
+        if ($distinctIps.Count -gt $existingIps.Count) {
+             Set-NetFirewallAddressFilter -InputObject $filter -RemoteAddress $distinctIps
+            }
+";
     }
 }
