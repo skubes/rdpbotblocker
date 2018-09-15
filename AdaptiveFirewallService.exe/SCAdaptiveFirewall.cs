@@ -101,9 +101,12 @@ namespace SCAdaptiveFirewall
         /// <returns>A collection of PSObjects that were returned from the script or command</returns>
         public Collection<PSObject> RunPowershellScript(string script, Dictionary<String, Object> parameters)
         {
-            Collection<PSObject> objects = new Collection<PSObject>();
-            using (var instance = PowerShell.Create())
+            Collection<PSObject> objects;
+            using (RunspacePool rsp = RunspaceFactory.CreateRunspacePool())
             {
+                rsp.Open();
+                var instance = PowerShell.Create();
+                instance.RunspacePool = rsp;
                 instance.AddScript(script);
                 foreach (var p in parameters)
                 {
@@ -120,9 +123,11 @@ namespace SCAdaptiveFirewall
                 {
                     WriteInfo($"{i}");
                 }
+
+                instance.Dispose();
             }
 
-            return objects;
+            return objects ?? new Collection<PSObject>();
         }
         /// <summary>
         /// Kicks off handling of interesting events by reading 

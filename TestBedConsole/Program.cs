@@ -10,37 +10,42 @@ namespace TestBedConsole
     {
         static void Main(string[] args)
         {
-            Collection<PSObject> runPowerShellScript(string script, Dictionary<String, Object> parameters)
+
+            var powershellargs = new Dictionary<string, object>
             {
-                var oprs = RunspaceFactory.CreateOutOfProcessRunspace(TypeTable.LoadDefaultTypeFiles());
+                { "IpAddress", "1.0.0.0" }
+            };
+            var script = @"
+Write-Output ""yo""";
+            RunPowerShellScript(script, powershellargs);
+        }
 
-
-                oprs.Open();
-                Collection<PSObject> objects;
-                using (var instance = PowerShell.Create())
+        static Collection<PSObject> RunPowerShellScript(string script, Dictionary<String, Object> parameters)
+        {
+            Collection<PSObject> objects = new Collection<PSObject>();
+            using (RunspacePool rsp = RunspaceFactory.CreateRunspacePool())
+            {
+                rsp.Open();
+                var ps = PowerShell.Create();
+                ps.RunspacePool = rsp;
+                ps.AddScript(script);
+                foreach (var p in parameters)
                 {
-                    instance.Runspace = oprs;
-                    instance.AddScript(script);
-                    foreach (var p in parameters)
-                    {
-                        instance.AddParameter(p.Key, p.Value);
-                    }
-                    objects = instance.Invoke();
-
-                    foreach (var e in instance.Streams.Error)
-                    {
-                        Console.WriteLine($"{e}");
-                    }
-
-                    foreach (var i in instance.Streams.Information)
-                    {
-                        Console.WriteLine($"{i}");
-                    }
+                    ps.AddParameter(p.Key, p.Value);
                 }
-                oprs.Dispose();
-                return objects;
+                objects = ps.Invoke();
+
+                foreach (var e in ps.Streams.Error)
+                {
+                    Console.WriteLine($"{e}");
+                }
+
+                foreach (var i in ps.Streams.Information)
+                {
+                    Console.WriteLine($"{i}");
+                }
             }
- 
+            return objects;
         }
     }
 }
