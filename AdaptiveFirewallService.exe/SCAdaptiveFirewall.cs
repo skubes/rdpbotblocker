@@ -10,6 +10,7 @@ using System.Management.Automation;
 using System.Collections.ObjectModel;
 using IPInfo = System.Collections.Generic.Dictionary<System.String, System.Collections.Generic.List<SCAdaptiveFirewall.AdaptiveFirewall.InterestingSecurityFailure>>;
 using System.Threading;
+using System.Management.Automation.Runspaces;
 
 namespace SCAdaptiveFirewall
 {
@@ -69,7 +70,7 @@ namespace SCAdaptiveFirewall
         {
             lock (_writerlock)
             {
-                _log.WriteLine($"[{DateTime.Now.ToString("o").Replace('T', ' ')} TID: {Thread.CurrentThread.ManagedThreadId}] {infomessage}");
+                _log.WriteLine($"[{DateTime.Now.ToString("o").Replace('T',' ')} TID:{Thread.CurrentThread.ManagedThreadId:000}] {infomessage}");
             }
             
         }
@@ -100,6 +101,7 @@ namespace SCAdaptiveFirewall
         /// <returns>A collection of PSObjects that were returned from the script or command</returns>
         public Collection<PSObject> RunPowershellScript(string script, Dictionary<String, Object> parameters)
         {
+            Collection<PSObject> objects = new Collection<PSObject>();
             using (var instance = PowerShell.Create())
             {
                 instance.AddScript(script);
@@ -107,7 +109,7 @@ namespace SCAdaptiveFirewall
                 {
                     instance.AddParameter(p.Key, p.Value);
                 }
-                var objects = instance.Invoke();
+                objects = instance.Invoke();
 
                 foreach (var e in instance.Streams.Error)
                 {
@@ -118,8 +120,9 @@ namespace SCAdaptiveFirewall
                 {
                     WriteInfo($"{i}");
                 }
-                return objects;
             }
+
+            return objects;
         }
         /// <summary>
         /// Kicks off handling of interesting events by reading 
@@ -192,7 +195,6 @@ namespace SCAdaptiveFirewall
             // just straight up block event 140 ips for now!! as a test:)
             if (isf.EventId == 140)
             {
-                WriteInfo($"Blocking ip [{isf.Ip}]");
                 BlockIp(isf.Ip);
                 return;
             }
@@ -210,20 +212,30 @@ namespace SCAdaptiveFirewall
             
                  secfailures = _ipdeets[isf.Ip].Count;
             }
-                WriteInfo($"IP [{isf.Ip}]. Security log failure count in last 1 hour [{secfailures}].");
-                WriteInfo($"User [{isf.UserName}]. Domain [{isf.Domain}].");
-                if (secfailures >= SecFailureCountThreshold)
-                {
-                    WriteInfo($"Need to block ip {isf.Ip}");
-                    BlockIp(isf.Ip);
-                }
+
+            WriteInfo($"IP [{isf.Ip}]. Security log failure count in last 1 hour [{secfailures}].");
+            WriteInfo($"User [{isf.UserName}]. Domain [{isf.Domain}].");
+
+            if (secfailures >= SecFailureCountThreshold)
+            {
+                BlockIp(isf.Ip);
+            }
         }
 
         private void PruneIpInfo()
         {
+            var itemstoremove = new List<string>();
             foreach (var entry in _ipdeets)
             {
                 entry.Value.RemoveAll(isf => isf.Date < DateTime.Now.AddHours(-1));
+                if (entry.Value.Count == 0)
+                {
+                    itemstoremove.Add(entry.Key);
+                }
+            }
+            foreach (var item in itemstoremove)
+            {
+                _ipdeets.Remove(item);
             }
         }
 
@@ -233,13 +245,14 @@ namespace SCAdaptiveFirewall
             {
                 { "IpAddress", $"{ip}" }
             };
+           WriteInfo($"Calling PowerShell script to block ip {ip}");
            RunPowershellScript(_blockscript, dict);
 
         }
 
         // TODO: Generalize for private IP ranges
         // instead of my house's range.
-        static Regex localAddressRE = new Regex(@"192\.168\.[0-5]\.\d{1,3}",
+        static Regex localAddressRE = new Regex(@"192\.168\.[0-5]\.\d{1,3}|127\.0\.0\.1",
                 RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         IPInfo _ipdeets = new IPInfo();
