@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using System.Management.Automation;
 using System.Collections.ObjectModel;
-using IPInfo = System.Collections.Generic.Dictionary<System.String, System.Collections.Generic.List<SCAdaptiveFirewall.AdaptiveFirewall.InterestingSecurityFailure>>;
+using IPInfo = System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<SCAdaptiveFirewall.AdaptiveFirewall.InterestingSecurityFailure>>;
 using System.Threading;
 using System.Management.Automation.Runspaces;
 
@@ -72,12 +72,12 @@ namespace SCAdaptiveFirewall
             {
                 _log.WriteLine($"[{DateTime.Now.ToString("o").Replace('T',' ')} TID:{Thread.CurrentThread.ManagedThreadId:000}] {infomessage}");
             }
-            
         }
 
         /// <summary>
         /// Callback method that gets executed when an event is
-        /// reported to the subscription.
+        /// reported to the subscription. Can be called from
+        /// multiple threads.
         /// </summary>
         public void OnEventRecordWritten(object obj,
             EventRecordWrittenEventArgs arg)
@@ -89,7 +89,14 @@ namespace SCAdaptiveFirewall
                 stopwatch.Start();
                 ProcessEvent(arg.EventRecord);
                 stopwatch.Stop();
-                WriteInfo($"Took [{stopwatch.Elapsed.TotalMilliseconds}] milliseconds to process event");
+                if (stopwatch.Elapsed.TotalMilliseconds > 500)
+                {
+                    WriteInfo($"Took [{stopwatch.Elapsed.TotalSeconds}] seconds to process event");
+                }
+                else
+                {
+                    WriteInfo($"Took [{stopwatch.Elapsed.TotalMilliseconds}] milliseconds to process event");
+                }
             }
         }
         /// <summary>
@@ -105,26 +112,32 @@ namespace SCAdaptiveFirewall
             using (RunspacePool rsp = RunspaceFactory.CreateRunspacePool())
             {
                 rsp.Open();
-                var instance = PowerShell.Create();
-                instance.RunspacePool = rsp;
-                instance.AddScript(script);
-                foreach (var p in parameters)
+                PowerShell instance = null;
+                try
                 {
-                    instance.AddParameter(p.Key, p.Value);
-                }
-                objects = instance.Invoke();
+                    instance = PowerShell.Create();
+                    instance.RunspacePool = rsp;
+                    instance.AddScript(script);
+                    foreach (var p in parameters)
+                    {
+                        instance.AddParameter(p.Key, p.Value);
+                    }
+                    objects = instance.Invoke();
 
-                foreach (var e in instance.Streams.Error)
-                {
-                    WriteInfo($"{e}");
-                }
-                
-                foreach (var i in instance.Streams.Information)
-                {
-                    WriteInfo($"{i}");
-                }
+                    foreach (var e in instance.Streams.Error)
+                    {
+                        WriteInfo($"{e}");
+                    }
 
-                instance.Dispose();
+                    foreach (var i in instance.Streams.Information)
+                    {
+                        WriteInfo($"{i}");
+                    }
+                }
+                finally
+                {
+                    instance?.Dispose();
+                }
             }
 
             return objects ?? new Collection<PSObject>();
@@ -185,24 +198,25 @@ namespace SCAdaptiveFirewall
         /// <returns></returns>
         static bool IsLocalAddress(string ip)
         {
-
             return localAddressRE.IsMatch(ip);
-
         }
         /// <summary>
-        /// Check if blocking is necessary depending on how many 
-        /// failed attempts there have been 
+        /// Check if blocking is necessary depending on event type and
+        /// how many failed attempts there have been 
         /// </summary>
         /// <param name="isf"></param>
         void BlockIpIfNecessary(InterestingSecurityFailure isf)
         {
-
+            WriteInfo($"[Event {isf.EventId}] IP: [{isf.Ip}]");
             // just straight up block event 140 ips for now!! as a test:)
             if (isf.EventId == 140)
             {
                 BlockIp(isf.Ip);
                 return;
             }
+
+            // if event 4625 check number of previous
+            // failed attempts in past hour.
 
             int secfailures;
             lock (_lock)
@@ -218,8 +232,8 @@ namespace SCAdaptiveFirewall
                  secfailures = _ipdeets[isf.Ip].Count;
             }
 
-            WriteInfo($"IP [{isf.Ip}]. Security log failure count in last 1 hour [{secfailures}].");
-            WriteInfo($"User [{isf.UserName}]. Domain [{isf.Domain}].");
+            WriteInfo($"[Event {isf.EventId}] Count in last hour: [{secfailures}]");
+            WriteInfo($"[Event {isf.EventId}] User: [{isf.UserName}] Domain: [{isf.Domain}]");
 
             if (secfailures >= SecFailureCountThreshold)
             {
@@ -252,7 +266,6 @@ namespace SCAdaptiveFirewall
             };
            WriteInfo($"Calling PowerShell script to block ip {ip}");
            RunPowershellScript(_blockscript, dict);
-
         }
 
         // TODO: Generalize for private IP ranges
@@ -266,7 +279,7 @@ namespace SCAdaptiveFirewall
         readonly EventLogWatcher _rdplogwatcher;
         readonly Object _lock = new object();
         readonly Object _writerlock = new object();
-        StreamWriter _log;
+        readonly StreamWriter _log;
 
         public int SecFailureCountThreshold { get; } = 5;
 
@@ -279,7 +292,6 @@ namespace SCAdaptiveFirewall
             public int EventId { get; set; }
         }
  
-
         string _blockscript = @"
         [CmdletBinding()]
         Param(
@@ -307,7 +319,7 @@ namespace SCAdaptiveFirewall
         $distinctIps.Add($IpAddress) | Out-Null
         if ($distinctIps.Count -gt $existingIps.Count) {
              Set-NetFirewallAddressFilter -InputObject $filter -RemoteAddress $distinctIps
-            }
+        }
 ";
     }
 }
