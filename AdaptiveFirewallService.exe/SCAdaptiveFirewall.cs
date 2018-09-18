@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using System.Management.Automation;
 using System.Collections.ObjectModel;
-using IPInfo = System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<SCAdaptiveFirewall.AdaptiveFirewall.InterestingSecurityFailure>>;
+using IPInfo = System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<SCAdaptiveFirewall.InterestingSecurityFailure>>;
 using System.Threading;
 using System.Management.Automation.Runspaces;
 
@@ -79,11 +79,11 @@ namespace SCAdaptiveFirewall
         /// reported to the subscription. Can be called on
         /// multiple threads.
         /// </summary>
-        public void OnEventRecordWritten(object obj,
+        public void OnEventRecordWritten(object sender,
             EventRecordWrittenEventArgs arg)
         {
             // Make sure there was no error reading the event.
-            if (arg.EventRecord != null)
+            if (arg?.EventRecord != null)
             {
                 var stopwatch = new Stopwatch();
                 stopwatch.Start();
@@ -106,7 +106,7 @@ namespace SCAdaptiveFirewall
         /// <param name="script"></param>
         /// <param name="parameters"></param>
         /// <returns>A collection of PSObjects that were returned from the script or command</returns>
-        public Collection<PSObject> RunPowershellScript(string script, Dictionary<String, Object> parameters)
+        public Collection<PSObject> RunPowerShellScript(string script, Dictionary<String, Object> parameters)
         {
             Collection<PSObject> objects;
             using (RunspacePool rsp = RunspaceFactory.CreateRunspacePool())
@@ -165,24 +165,24 @@ namespace SCAdaptiveFirewall
             switch (er.Id)
             {
                 case 4625:
-                    isf.Ip = (xml.SelectSingleNode("//a:Data[@Name=\"IpAddress\"]", ns))?.InnerText;
+                    isf.IP = (xml.SelectSingleNode("//a:Data[@Name=\"IpAddress\"]", ns))?.InnerText;
                     isf.UserName = (xml.SelectSingleNode("//a:Data[@Name=\"TargetUserName\"]", ns))?.InnerText;
                     isf.Domain = (xml.SelectSingleNode("//a:Data[@Name=\"TargetDomainName\"]", ns))?.InnerText;
                     break;
                 case 140:
-                    isf.Ip = (xml.SelectSingleNode("//a:Data[@Name=\"IPString\"]", ns))?.InnerText;
+                    isf.IP = (xml.SelectSingleNode("//a:Data[@Name=\"IPString\"]", ns))?.InnerText;
                     break;
             }
 
-            if (isf.Ip == null)
+            if (isf.IP == null)
             {
                 WriteInfo("Couldn't read IP address from event.  Nothing to do.");
                 return;
             }
 
-            if (IsLocalAddress(isf.Ip))
+            if (IsLocalAddress(isf.IP))
             {
-                WriteInfo($"Local address found [{isf.Ip}]. Skipping.");
+                WriteInfo($"Local address found [{isf.IP}]. Skipping.");
                 return;
             }
 
@@ -207,11 +207,11 @@ namespace SCAdaptiveFirewall
         /// <param name="isf"></param>
         void BlockIpIfNecessary(InterestingSecurityFailure isf)
         {
-            WriteInfo($"[Event {isf.EventId}] IP: [{isf.Ip}]");
+            WriteInfo($"[Event {isf.EventId}] IP: [{isf.IP}]");
             // just straight up block event 140 ips for now!! as a test:)
             if (isf.EventId == 140)
             {
-                BlockIp(isf.Ip);
+                BlockIp(isf.IP);
                 return;
             }
 
@@ -223,13 +223,13 @@ namespace SCAdaptiveFirewall
             {
                 PruneIpInfo();
 
-                if (!_ipdeets.ContainsKey(isf.Ip))
+                if (!_ipdeets.ContainsKey(isf.IP))
                 {
-                    _ipdeets[isf.Ip] = new List<InterestingSecurityFailure>();
+                    _ipdeets[isf.IP] = new List<InterestingSecurityFailure>();
                 }
-                _ipdeets[isf.Ip].Add(isf);
+                _ipdeets[isf.IP].Add(isf);
             
-                 secfailures = _ipdeets[isf.Ip].Count;
+                 secfailures = _ipdeets[isf.IP].Count;
             }
 
             WriteInfo($"[Event {isf.EventId}] Count in last hour: [{secfailures}]");
@@ -237,7 +237,7 @@ namespace SCAdaptiveFirewall
 
             if (secfailures >= SecFailureCountThreshold)
             {
-                BlockIp(isf.Ip);
+                BlockIp(isf.IP);
             }
         }
 
@@ -265,7 +265,7 @@ namespace SCAdaptiveFirewall
                 { "IpAddress", $"{ip}" }
             };
            WriteInfo($"Calling PowerShell script to block ip {ip}");
-           RunPowershellScript(_blockscript, dict);
+           RunPowerShellScript(_blockscript, dict);
         }
 
         // TODO: Generalize for private IP ranges
@@ -282,15 +282,6 @@ namespace SCAdaptiveFirewall
         readonly StreamWriter _log;
 
         public int SecFailureCountThreshold { get; } = 5;
-
-        public class InterestingSecurityFailure
-        {
-            public string Ip { get; set; }
-            public DateTime? Date { get; set; }
-            public string UserName { get; set; }
-            public string Domain { get; set; }
-            public int EventId { get; set; }
-        }
  
         string _blockscript = @"
         [CmdletBinding()]
@@ -321,5 +312,13 @@ namespace SCAdaptiveFirewall
              Set-NetFirewallAddressFilter -InputObject $filter -RemoteAddress $distinctIps
         }
 ";
+    }
+    public class InterestingSecurityFailure
+    {
+        public string IP { get; set; }
+        public DateTime? Date { get; set; }
+        public string UserName { get; set; }
+        public string Domain { get; set; }
+        public int EventId { get; set; }
     }
 }
