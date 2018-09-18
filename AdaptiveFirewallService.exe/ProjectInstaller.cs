@@ -25,7 +25,7 @@ namespace SCAdaptiveFirewall
             // The services run under the system account.
             processInstaller.Account = ServiceAccount.LocalSystem;
 
-            // The services are started manually.
+            // The services are started automatically.
             serviceInstaller.StartType = ServiceStartMode.Automatic;
 
             // ServiceName must equal those on ServiceBase derived classes.

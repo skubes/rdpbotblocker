@@ -68,7 +68,7 @@ namespace SCAdaptiveFirewall
         /// <param name="infomessage"></param>
         void WriteInfo(string infomessage)
         {
-            lock (_writerlock)
+            lock (_loglock)
             {
                 _log.WriteLine($"[{DateTime.Now.ToString("o").Replace('T',' ')} TID:{Thread.CurrentThread.ManagedThreadId:000}] {infomessage}");
             }
@@ -76,7 +76,7 @@ namespace SCAdaptiveFirewall
 
         /// <summary>
         /// Callback method that gets executed when an event is
-        /// reported to the subscription. Can be called from
+        /// reported to the subscription. Can be called on
         /// multiple threads.
         /// </summary>
         public void OnEventRecordWritten(object obj,
@@ -219,7 +219,7 @@ namespace SCAdaptiveFirewall
             // failed attempts in past hour.
 
             int secfailures;
-            lock (_lock)
+            lock (_datalock)
             {
                 PruneIpInfo();
 
@@ -277,8 +277,8 @@ namespace SCAdaptiveFirewall
 
         readonly EventLogWatcher _seclogwatcher;
         readonly EventLogWatcher _rdplogwatcher;
-        readonly Object _lock = new object();
-        readonly Object _writerlock = new object();
+        readonly Object _datalock = new object();
+        readonly Object _loglock = new object();
         readonly StreamWriter _log;
 
         public int SecFailureCountThreshold { get; } = 5;
