@@ -11,6 +11,7 @@ using System.Collections.ObjectModel;
 using IPInfo = System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<SCAdaptiveFirewall.InterestingSecurityFailure>>;
 using System.Threading;
 using System.Management.Automation.Runspaces;
+using System.Configuration;
 
 namespace SCAdaptiveFirewall
 {
@@ -44,10 +45,9 @@ namespace SCAdaptiveFirewall
                     OnEventRecordWritten);
 
             var logpath = Path.Combine(Path.GetTempPath(), "AdaptiveFirewall.log");
-            _log = new StreamWriter(logpath, true)
-            {
-                AutoFlush = true
-            };
+
+            _log = new StreamWriter(logpath, true);
+            _log.AutoFlush = true;
         }
 
         protected override void OnStart(string[] args)
@@ -83,7 +83,7 @@ namespace SCAdaptiveFirewall
             EventRecordWrittenEventArgs arg)
         {
             // Make sure there was no error reading the event.
-            if (arg?.EventRecord != null)
+            if (arg != null && arg.EventRecord != null)
             {
                 var stopwatch = new Stopwatch();
                 stopwatch.Start();
@@ -118,10 +118,14 @@ namespace SCAdaptiveFirewall
                     instance = PowerShell.Create();
                     instance.RunspacePool = rsp;
                     instance.AddScript(script);
-                    foreach (var p in parameters)
+                    if (parameters != null)
                     {
-                        instance.AddParameter(p.Key, p.Value);
+                        foreach (var p in parameters)
+                        {
+                            instance.AddParameter(p.Key, p.Value);
+                        }
                     }
+
                     objects = instance.Invoke();
 
                     foreach (var e in instance.Streams.Error)
@@ -272,6 +276,25 @@ namespace SCAdaptiveFirewall
         // instead of my house's range.
         static Regex localAddressRE = new Regex(@"192\.168\.[0-5]\.\d{1,3}|127\.0\.0\.1",
                 RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        static List<Subnet> _subnets = LoadSubnets();
+
+        private static List<Subnet> LoadSubnets()
+        {
+            var sublist = new List<Subnet>();
+            var subsconfig = ConfigurationManager.AppSettings["LocalSubnets"];
+            var subs = subsconfig.Split(',');
+            foreach (var entry in subs)
+            {
+                var parts = entry.Split('/');
+                var s = new Subnet()
+                {
+                    Address = parts[0],
+                    MaskBits = int.Parse(parts[1])
+                };
+                sublist.Add(s);
+            }
+            return sublist;
+        }
 
         IPInfo _ipdeets = new IPInfo();
 
@@ -313,7 +336,14 @@ namespace SCAdaptiveFirewall
         }
 ";
     }
-    public class InterestingSecurityFailure
+
+    internal class Subnet
+    {
+        public string Address { get; set; }
+        public int MaskBits { get; set; }
+    }
+
+    internal class InterestingSecurityFailure
     {
         public string IP { get; set; }
         public DateTime? Date { get; set; }
