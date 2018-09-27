@@ -12,11 +12,52 @@ using IPInfo = System.Collections.Generic.Dictionary<string, System.Collections.
 using System.Threading;
 using System.Management.Automation.Runspaces;
 using System.Configuration;
+using System.Globalization;
 
 namespace SCAdaptiveFirewall
 {
     public partial class AdaptiveFirewall : ServiceBase
     {
+        IPInfo _ipdeets = new IPInfo();
+        static readonly Object _loglock;
+        static readonly StreamWriter _log;
+        readonly EventLogWatcher _seclogwatcher;
+        readonly EventLogWatcher _rdplogwatcher;
+        readonly Object _datalock = new object();
+        // TODO: Generalize for private IP ranges
+        // instead of my house's range.
+        static Regex localAddressRE = new Regex(@"192\.168\.[0-5]\.\d{1,3}|127\.0\.0\.1",
+                RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        static List<Subnet> _subnets;
+        static string _blockscript = @"
+        [CmdletBinding()]
+        Param(
+            [Parameter(Mandatory=$true)]
+            [string] $IpAddress
+        )
+        function Info {
+            Param($InfoMessage)
+                Write-Information ""{PowerShell script} $InfoMessage""
+        }
+
+        $InformationPreference = 'Continue'
+
+        Info ""Getting exising blocked IPs from firewall rule (Block RDP Bots)""
+        $filter = Get-NetFirewallRule -DisplayName ""Block RDP Bots"" -ErrorAction Stop | Get-NetFirewallAddressFilter
+        $existingIps = $filter.RemoteAddress
+        Info ""   found [$($existingIps.Count)] IPs""
+        Info ""   done.""
+
+        $distinctIps = New-Object 'Collections.Generic.HashSet[String]'
+        $existingIps |
+            ForEach-Object {
+                $distinctIps.Add($_) | Out-Null
+        }
+        $distinctIps.Add($IpAddress) | Out-Null
+        if ($distinctIps.Count -gt $existingIps.Count) {
+             Set-NetFirewallAddressFilter -InputObject $filter -RemoteAddress $distinctIps
+        }
+";
         public AdaptiveFirewall()
         {
             InitializeComponent();
@@ -43,12 +84,18 @@ namespace SCAdaptiveFirewall
             _rdplogwatcher.EventRecordWritten +=
                 new EventHandler<EventRecordWrittenEventArgs>(
                     OnEventRecordWritten);
+        }
 
+        static AdaptiveFirewall()
+        {
+            _loglock = new object();
             var logpath = Path.Combine(Path.GetTempPath(), "AdaptiveFirewall.log");
-
             _log = new StreamWriter(logpath, true);
             _log.AutoFlush = true;
+            LoadSubnets();
         }
+
+        public int SecFailureCountThreshold { get; } = 5;
 
         protected override void OnStart(string[] args)
         {
@@ -66,7 +113,7 @@ namespace SCAdaptiveFirewall
         /// temp folder
         /// </summary>
         /// <param name="infomessage"></param>
-        void WriteInfo(string infomessage)
+        static void WriteInfo(string infomessage)
         {
             lock (_loglock)
             {
@@ -106,7 +153,7 @@ namespace SCAdaptiveFirewall
         /// <param name="script"></param>
         /// <param name="parameters"></param>
         /// <returns>A collection of PSObjects that were returned from the script or command</returns>
-        public Collection<PSObject> RunPowerShellScript(string script, Dictionary<String, Object> parameters)
+        static Collection<PSObject> RunPowerShellScript(string script, Dictionary<String, Object> parameters)
         {
             Collection<PSObject> objects;
             using (RunspacePool rsp = RunspaceFactory.CreateRunspacePool())
@@ -262,7 +309,7 @@ namespace SCAdaptiveFirewall
             }
         }
 
-        private void BlockIp(string ip)
+        private static void BlockIp(string ip)
         {
             var dict = new Dictionary<string, object>
             {
@@ -272,69 +319,45 @@ namespace SCAdaptiveFirewall
            RunPowerShellScript(_blockscript, dict);
         }
 
-        // TODO: Generalize for private IP ranges
-        // instead of my house's range.
-        static Regex localAddressRE = new Regex(@"192\.168\.[0-5]\.\d{1,3}|127\.0\.0\.1",
-                RegexOptions.Compiled | RegexOptions.IgnoreCase);
-        static List<Subnet> _subnets = LoadSubnets();
-
-        private static List<Subnet> LoadSubnets()
+        private static void LoadSubnets()
         {
             var sublist = new List<Subnet>();
             var subsconfig = ConfigurationManager.AppSettings["LocalSubnets"];
+            if (subsconfig == null)
+            {
+                _subnets = sublist;
+                return;
+            }
+
             var subs = subsconfig.Split(',');
             foreach (var entry in subs)
             {
-                var parts = entry.Split('/');
-                var s = new Subnet()
+                Subnet s = null;
+                string[] parts = null;
+                try
                 {
-                    Address = parts[0],
-                    MaskBits = int.Parse(parts[1])
-                };
-                sublist.Add(s);
+                    parts = entry.Split('/');
+                    s = new Subnet()
+                    {
+                        Address = parts[0],
+                        MaskBits = int.Parse(parts[1],CultureInfo.CurrentCulture)
+                    };
+                }
+                catch (FormatException)
+                {
+                    WriteInfo($"Failure while parsing LocalSubnets config setting. Couldn't convert '{parts[1]}' to an int");
+                    continue;
+                }
+                catch (IndexOutOfRangeException)
+                {
+                    WriteInfo($"Failure while parsing LocalSubnets config setting. Make sure value in the format Address/maskbits");
+                    continue;
+                }
+                if (s != null)
+                    sublist.Add(s);
             }
-            return sublist;
+            _subnets = sublist;
         }
-
-        IPInfo _ipdeets = new IPInfo();
-
-        readonly EventLogWatcher _seclogwatcher;
-        readonly EventLogWatcher _rdplogwatcher;
-        readonly Object _datalock = new object();
-        readonly Object _loglock = new object();
-        readonly StreamWriter _log;
-
-        public int SecFailureCountThreshold { get; } = 5;
- 
-        string _blockscript = @"
-        [CmdletBinding()]
-        Param(
-            [Parameter(Mandatory=$true)]
-            [string] $IpAddress
-        )
-        function Info {
-            Param($InfoMessage)
-                Write-Information ""{PowerShell script} $InfoMessage""
-        }
-
-        $InformationPreference = 'Continue'
-
-        Info ""Getting exising blocked IPs from firewall rule (Block RDP Bots)""
-        $filter = Get-NetFirewallRule -DisplayName ""Block RDP Bots"" -ErrorAction Stop | Get-NetFirewallAddressFilter
-        $existingIps = $filter.RemoteAddress
-        Info ""   found [$($existingIps.Count)] IPs""
-        Info ""   done.""
-
-        $distinctIps = New-Object 'Collections.Generic.HashSet[String]'
-        $existingIps |
-            ForEach-Object {
-                $distinctIps.Add($_) | Out-Null
-        }
-        $distinctIps.Add($IpAddress) | Out-Null
-        if ($distinctIps.Count -gt $existingIps.Count) {
-             Set-NetFirewallAddressFilter -InputObject $filter -RemoteAddress $distinctIps
-        }
-";
     }
 
     internal class Subnet
