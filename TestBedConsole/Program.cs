@@ -10,14 +10,19 @@ namespace TestBedConsole
     {
         static void Main(string[] args)
         {
-
-            var powershellargs = new Dictionary<string, object>
+            for (var i = 0; i < 10000; ++i)
+            {
+                var powershellargs = new Dictionary<string, object>
             {
                 { "IpAddress", "1.0.0.0" }
             };
-            var script = @"
+                var script = @"
 Write-Output ""yo""";
-            RunPowerShellScript(script, powershellargs);
+                RunPowerShellScript(script, powershellargs);
+                System.Threading.Thread.Sleep(1000);
+            }
+            Console.ReadKey();
+
         }
 
         static Collection<PSObject> RunPowerShellScript(string script, Dictionary<String, Object> parameters)

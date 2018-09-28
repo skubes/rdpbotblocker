@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+ <Event xmlns="http://schemas.microsoft.com/win/2004/08/events/event">
+   <System>
+    <Provider Name="Microsoft-Windows-RemoteDesktopServices-RdpCoreTS" Guid="{1139C61B-B549-4251-8ED3-27250A1EDEC8}" />
+    <EventID>140</EventID>
+    <Version>0</Version>
+    <Level>3</Level>
+    <Task>4</Task>
+    <Opcode>14</Opcode>
+    <Keywords>0x4000000000000000</Keywords>
+    <TimeCreated SystemTime="2018-09-27T18:53:35.888226600Z" />
+    <EventRecordID>372451</EventRecordID>
+    <Correlation ActivityID="{F420FECC-1362-439A-A311-C13689820000}" />
+    <Execution ProcessID="1160" ThreadID="43580" />
+    <Channel>Microsoft-Windows-RemoteDesktopServices-RdpCoreTS/Operational</Channel>
+    <Computer>veggiesaurus</Computer>
+    <Security UserID="S-1-5-20" />
+  </System>
+   <EventData>
+    <Data Name="IPString">185.143.223.77</Data>
+  </EventData>
+</Event>

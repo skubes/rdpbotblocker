@@ -38,7 +38,4 @@ using System;
 [assembly: AssemblyFileVersion("1.0.0.0")]
 [assembly: NeutralResourcesLanguage("en-US")]
 [assembly: CLSCompliant(true)]
-
 [assembly: InternalsVisibleTo("AdaptiveFirewallService.Test")]
-
-

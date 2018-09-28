@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.Eventing.Reader;
 using System.IO;
 using System.ServiceProcess;
-using System.Text.RegularExpressions;
+using System.Numerics;
 using System.Xml;
 using System.Management.Automation;
 using System.Collections.ObjectModel;
@@ -13,6 +13,8 @@ using System.Threading;
 using System.Management.Automation.Runspaces;
 using System.Configuration;
 using System.Globalization;
+using System.Net;
+using System.Net.Sockets;
 
 namespace SCAdaptiveFirewall
 {
@@ -24,11 +26,7 @@ namespace SCAdaptiveFirewall
         readonly EventLogWatcher _seclogwatcher;
         readonly EventLogWatcher _rdplogwatcher;
         readonly Object _datalock = new object();
-        // TODO: Generalize for private IP ranges
-        // instead of my house's range.
-        static Regex localAddressRE = new Regex(@"192\.168\.[0-5]\.\d{1,3}|127\.0\.0\.1",
-                RegexOptions.Compiled | RegexOptions.IgnoreCase);
-        static List<Subnet> _subnets;
+        static List<Subnet> _localsubnets;
         static string _blockscript = @"
         [CmdletBinding()]
         Param(
@@ -58,6 +56,9 @@ namespace SCAdaptiveFirewall
              Set-NetFirewallAddressFilter -InputObject $filter -RemoteAddress $distinctIps
         }
 ";
+        /// <summary>
+        ///  Constructor
+        /// </summary>
         public AdaptiveFirewall()
         {
             InitializeComponent();
@@ -86,6 +87,9 @@ namespace SCAdaptiveFirewall
                     OnEventRecordWritten);
         }
 
+        /// <summary>
+        ///  Static constructor
+        /// </summary>
         static AdaptiveFirewall()
         {
             _loglock = new object();
@@ -97,12 +101,21 @@ namespace SCAdaptiveFirewall
 
         public int SecFailureCountThreshold { get; } = 5;
 
+        /// <summary>
+        /// Override method called by Windows when starting
+        /// the service.
+        /// </summary>
+        /// <param name="args"></param>
         protected override void OnStart(string[] args)
         {
             _seclogwatcher.Enabled = true;
             _rdplogwatcher.Enabled = true;
         }
 
+        /// <summary>
+        /// Override method called by Windows when stopping
+        /// the service.
+        /// </summary>
         protected override void OnStop()
         {
             _seclogwatcher.Enabled = false;
@@ -198,10 +211,29 @@ namespace SCAdaptiveFirewall
         /// metadata from Event XML.
         /// </summary>
         /// <param name="er"></param>
-        void ProcessEvent(EventRecord er)
+       void ProcessEvent(EventRecord er)
         {
             WriteInfo($"Received event {er.Id} from the subscription.");
 
+            var isf = ParseEvent(er);
+
+            if (isf.IP == null)
+            {
+                WriteInfo("Couldn't read IP address from event.  Nothing to do.");
+                return;
+            }
+
+            if (IsLocalAddress(isf.IP))
+            {
+                WriteInfo($"Local address found [{isf.IP}]. Skipping.");
+                return;
+            }
+
+            BlockIpIfNecessary(isf);
+        }
+
+        public InterestingSecurityFailure ParseEvent(EventRecord er)
+        {
             var xml = new XmlDocument();
             xml.LoadXml(er.ToXml());
             var ns = new XmlNamespaceManager(xml.NameTable);
@@ -224,33 +256,114 @@ namespace SCAdaptiveFirewall
                     isf.IP = (xml.SelectSingleNode("//a:Data[@Name=\"IPString\"]", ns))?.InnerText;
                     break;
             }
-
-            if (isf.IP == null)
-            {
-                WriteInfo("Couldn't read IP address from event.  Nothing to do.");
-                return;
-            }
-
-            if (IsLocalAddress(isf.IP))
-            {
-                WriteInfo($"Local address found [{isf.IP}]. Skipping.");
-                return;
-            }
-
-            BlockIpIfNecessary(isf);
+            return isf;
         }
 
         /// <summary>
         /// Given an Ip determine if it is a "local"
-        /// ip that should be ignored.  See TODO below..
-        /// Hack altert
+        /// ip that should be ignored.  
         /// </summary>
         /// <param name="ip"></param>
         /// <returns></returns>
         static bool IsLocalAddress(string ip)
         {
-            return localAddressRE.IsMatch(ip);
+            foreach (var s in _localsubnets)
+            {
+                if (IsAddressInSubnet(ip, s))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
+        /// <summary>
+        /// Given an ip, subnet address, and number
+        /// of mask bits, determine whether ip is in subnet
+        /// Found mostly:
+        /// https://stackoverflow.com/questions/1499269/how-to-check-if-an-ip-address-is-within-a-particular-subnet
+        /// </summary>
+        /// <param name="ip"></param>
+        /// <param name="subnetaddress"></param>
+        /// <param name="maskbits"></param>
+        /// <returns></returns>
+        private static bool IsAddressInSubnet(string ip, Subnet s)
+        {
+            if (!IPAddress.TryParse(ip, out IPAddress ad))
+            {
+                return false;
+            }
+
+            var sad = s.IPObject;
+            var adbytes = ad.GetAddressBytes();
+            var sadbytes = sad.GetAddressBytes();
+            IPAddress mad;
+            byte[] madbytes;
+            byte[] maskoctets;
+
+            if (sad.AddressFamily == AddressFamily.InterNetworkV6)
+            {
+                var mask = BigInteger.Parse("00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+                    NumberStyles.HexNumber) << (128 - s.MaskBits);
+
+                maskoctets = new[]
+                {
+                    (byte)((mask & BigInteger.Parse("00FF000000000000000000000000000000", NumberStyles.HexNumber)) >> 120),
+                    (byte)((mask & BigInteger.Parse("0000FF0000000000000000000000000000", NumberStyles.HexNumber)) >> 112),
+                    (byte)((mask & BigInteger.Parse("000000FF00000000000000000000000000", NumberStyles.HexNumber)) >> 104),
+                    (byte)((mask & BigInteger.Parse("00000000FF000000000000000000000000", NumberStyles.HexNumber)) >> 96),
+                    (byte)((mask & BigInteger.Parse("0000000000FF0000000000000000000000", NumberStyles.HexNumber)) >> 88),
+                    (byte)((mask & BigInteger.Parse("000000000000FF00000000000000000000", NumberStyles.HexNumber)) >> 80),
+                    (byte)((mask & BigInteger.Parse("00000000000000FF000000000000000000", NumberStyles.HexNumber)) >> 72),
+                    (byte)((mask & BigInteger.Parse("0000000000000000FF0000000000000000", NumberStyles.HexNumber)) >> 64),
+                    (byte)((mask & BigInteger.Parse("000000000000000000FF00000000000000", NumberStyles.HexNumber)) >> 56),
+                    (byte)((mask & BigInteger.Parse("00000000000000000000FF000000000000", NumberStyles.HexNumber)) >> 48),
+                    (byte)((mask & BigInteger.Parse("0000000000000000000000FF0000000000", NumberStyles.HexNumber)) >> 40),
+                    (byte)((mask & BigInteger.Parse("000000000000000000000000FF00000000", NumberStyles.HexNumber)) >> 32),
+                    (byte)((mask & BigInteger.Parse("00000000000000000000000000FF000000", NumberStyles.HexNumber)) >> 24),
+                    (byte)((mask & BigInteger.Parse("0000000000000000000000000000FF0000", NumberStyles.HexNumber)) >> 16),
+                    (byte)((mask & BigInteger.Parse("000000000000000000000000000000FF00", NumberStyles.HexNumber)) >> 8),
+                    (byte)((mask & BigInteger.Parse("00000000000000000000000000000000FF", NumberStyles.HexNumber)) >> 0),
+                };
+            }
+            else if (sad.AddressFamily == AddressFamily.InterNetwork)
+            {
+                uint mask = 0xFFFFFFFF << (32 - s.MaskBits);
+                maskoctets = new[]
+                {
+                    (byte)((mask & 0xFF000000) >> 24),
+                    (byte)((mask & 0x00FF0000) >> 16),
+                    (byte)((mask & 0x0000FF00) >> 8),
+                    (byte)((mask & 0x000000FF) >> 0)
+                };
+            }
+            else
+            {
+                // subnet address is neither IPv4 or IPv6
+                // just get out.
+                return false;
+            }
+
+            mad = new IPAddress(maskoctets);
+            madbytes = mad.GetAddressBytes();
+
+            if (adbytes.Length != madbytes.Length
+                || sadbytes.Length != adbytes.Length)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < adbytes.Length; ++i)
+            {
+                var addressOctet = adbytes[i];
+                var subnetOctet = madbytes[i];
+                var networkOctet = sadbytes[i];
+
+                if ((networkOctet & subnetOctet) != (addressOctet & subnetOctet)) return false;
+            }
+
+            return true;
+        }
+
         /// <summary>
         /// Check if blocking is necessary depending on event type and
         /// how many failed attempts there have been 
@@ -292,6 +405,9 @@ namespace SCAdaptiveFirewall
             }
         }
 
+        /// <summary>
+        /// Deletes any stale entries from the dictionary
+        /// </summary>
         private void PruneIpInfo()
         {
             var itemstoremove = new List<string>();
@@ -309,6 +425,11 @@ namespace SCAdaptiveFirewall
             }
         }
 
+        /// <summary>
+        /// Given an IP string, block address using
+        /// PowerShell script.
+        /// </summary>
+        /// <param name="ip"></param>
         private static void BlockIp(string ip)
         {
             var dict = new Dictionary<string, object>
@@ -319,13 +440,17 @@ namespace SCAdaptiveFirewall
            RunPowerShellScript(_blockscript, dict);
         }
 
+        /// <summary>
+        ///  Read config file appsetting "LocalSubnets" and update
+        ///  corresponding list of Subnet objects.
+        /// </summary>
         private static void LoadSubnets()
         {
             var sublist = new List<Subnet>();
             var subsconfig = ConfigurationManager.AppSettings["LocalSubnets"];
             if (subsconfig == null)
             {
-                _subnets = sublist;
+                _localsubnets = sublist;
                 return;
             }
 
@@ -343,6 +468,11 @@ namespace SCAdaptiveFirewall
                         MaskBits = int.Parse(parts[1],CultureInfo.CurrentCulture)
                     };
                 }
+                catch (ArgumentOutOfRangeException e)
+                {
+                    WriteInfo(e.Message);
+                    continue;
+                }
                 catch (FormatException)
                 {
                     WriteInfo($"Failure while parsing LocalSubnets config setting. Couldn't convert '{parts[1]}' to an int");
@@ -356,17 +486,71 @@ namespace SCAdaptiveFirewall
                 if (s != null)
                     sublist.Add(s);
             }
-            _subnets = sublist;
+            _localsubnets = sublist;
         }
     }
 
     internal class Subnet
     {
-        public string Address { get; set; }
-        public int MaskBits { get; set; }
+        string _address;
+        int _maskbits;
+
+        public string Address
+        {
+            get { return _address; }
+            set
+            {
+                if (IPAddress.TryParse(value, out IPAddress address))
+                {
+                    _address = value;
+                    IPObject = address;
+                }
+                else
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value),
+                        value, "IP address string unable to be parsed into an IP.");
+                }
+            }
+        }
+
+        public IPAddress IPObject { get; private set; }
+
+        public int MaskBits
+        {
+            get { return _maskbits; }
+            set
+            {
+                if (IPObject != null 
+                    && IPObject.AddressFamily == AddressFamily.InterNetworkV6)
+                {
+                    if (value > 0 && value < 128)
+                    {
+                        _maskbits = value;
+                    }
+                    else
+                    {
+                        throw new ArgumentOutOfRangeException(nameof(value),
+                            value, "Subnet mask bits must be between 1 and 127 for IPv6 addresses");
+                    }
+                }
+                else if (IPObject != null 
+                    && IPObject.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    if (value > 0 && value < 32)
+                    {
+                        _maskbits = value;
+                    }
+                    else
+                    {
+                        throw new ArgumentOutOfRangeException(nameof(value),
+                            value, "Subnet mask bits must be between 1 and 31 for IPv4 addresses");
+                    }
+                }
+            }
+        }
     }
 
-    internal class InterestingSecurityFailure
+    public class InterestingSecurityFailure
     {
         public string IP { get; set; }
         public DateTime? Date { get; set; }
