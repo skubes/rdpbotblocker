@@ -45,9 +45,8 @@ namespace AdaptiveFirewallService.Test
         public void LoadWithhLocalSubnetsSetting(string setting, int expectedCount)
         {
             ConfigurationManager.AppSettings.Set("LocalSubnets", setting);
-            PrivateType afw = new PrivateType(typeof (AdaptiveFirewall));
-            afw.InvokeStatic("LoadSubnets");
-            var subs = afw.GetStaticField("_localsubnets") as List<Subnet>;
+            AdaptiveFirewall.LoadLocalSubnetsFromConfig();
+            var subs = AdaptiveFirewall.LocalSubnets;
             Assert.AreEqual(subs.Count, expectedCount);
            
         }
@@ -61,9 +60,8 @@ namespace AdaptiveFirewallService.Test
         public void IsLocalIP(string ip, string setting, bool expected)
         {
             ConfigurationManager.AppSettings.Set("LocalSubnets", setting);
-            PrivateType afw = new PrivateType(typeof(AdaptiveFirewall));
-            afw.InvokeStatic("LoadSubnets");
-            var res = afw.InvokeStatic("IsLocalAddress", new object[] { ip });
+            AdaptiveFirewall.LoadLocalSubnetsFromConfig();
+            var res = AdaptiveFirewall.IsLocalAddress(ip);
             Assert.AreEqual(res, expected);
 
         }

@@ -15,7 +15,7 @@ Open .sln file with Visual Studio 2017 and build the solution in Debug or Releas
 ## Installing and configuring
 Copy built binary (under AdaptiveFirewall.exe\bin\Release for example) to an installation folder of your choosing and install the service using InstallUtil.exe. It's not recommended to leave it in the build output folder as you may want to test additional builds when the service is running. 
 
-Also copy the .config file along with the .exe and edit the file to configure your local subnets. If any IP addresses originate from a configured subnet they will be ignored. The appSetting "LocalSubnets" is a comma seperated list of subnets in CIDR notation (i.e. "10.10.10.1/24").
+Also be sure to copy the .config file that comes along with the .exe and edit it to configure your local subnets. If any IP addresses originate from a configured subnet they will be ignored. The appSetting "LocalSubnets" is a comma seperated list of subnets in CIDR notation (i.e. "10.10.10.1/24").
 
 I made a folder called c:\Program files (x86)\Adaptive Firewall for my install.
 

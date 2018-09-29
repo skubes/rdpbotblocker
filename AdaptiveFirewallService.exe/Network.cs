@@ -97,7 +97,7 @@ namespace SCAdaptiveFirewall
         }
     }
 
-    internal class Subnet
+    public class Subnet
     {
         string _address;
         int _maskbits;

@@ -23,7 +23,7 @@ namespace SCAdaptiveFirewall
         readonly EventLogWatcher _seclogwatcher;
         readonly EventLogWatcher _rdplogwatcher;
         readonly Object _datalock = new object();
-        static List<Subnet> _localsubnets;
+        public static List<Subnet> LocalSubnets { get; private set; }
         static string _blockscript = @"
         [CmdletBinding()]
         Param(
@@ -93,7 +93,7 @@ namespace SCAdaptiveFirewall
             var logpath = Path.Combine(Path.GetTempPath(), "AdaptiveFirewall.log");
             _log = new StreamWriter(logpath, true);
             _log.AutoFlush = true;
-            LoadSubnets();
+            LoadLocalSubnetsFromConfig();
         }
 
         public int SecFailureCountThreshold { get; } = 5;
@@ -262,9 +262,9 @@ namespace SCAdaptiveFirewall
         /// </summary>
         /// <param name="ip"></param>
         /// <returns></returns>
-        static bool IsLocalAddress(string ip)
+        public static bool IsLocalAddress(string ip)
         {
-            foreach (var s in _localsubnets)
+            foreach (var s in LocalSubnets)
             {
                 if (Network.IsAddressInSubnet(ip, s))
                 {
@@ -355,13 +355,13 @@ namespace SCAdaptiveFirewall
         ///  Read config file appsetting "LocalSubnets" and update
         ///  corresponding list of Subnet objects.
         /// </summary>
-        private static void LoadSubnets()
+        public static void LoadLocalSubnetsFromConfig()
         {
             var sublist = new List<Subnet>();
             var subsconfig = ConfigurationManager.AppSettings["LocalSubnets"];
             if (subsconfig == null)
             {
-                _localsubnets = sublist;
+                LocalSubnets = sublist;
                 return;
             }
 
@@ -397,7 +397,7 @@ namespace SCAdaptiveFirewall
                 if (s != null)
                     sublist.Add(s);
             }
-            _localsubnets = sublist;
+            LocalSubnets = sublist;
         }
     }
 
