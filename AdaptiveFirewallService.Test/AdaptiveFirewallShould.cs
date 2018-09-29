@@ -13,7 +13,7 @@ namespace AdaptiveFirewallService.Test
     public class AdaptiveFirewallShould
 
     {
-        AdaptiveFirewall _afw = new AdaptiveFirewall();
+        readonly AdaptiveFirewall _afw = new AdaptiveFirewall();
 
         [TestMethod]
         public void ClassInstanceShouldHaveConstructed()
@@ -84,7 +84,7 @@ namespace AdaptiveFirewallService.Test
             er.SetupGet(evtr => evtr.TimeCreated).Returns(DateTime.Parse("2018-09-27T18:53:35.888226600Z"));
 
             // process
-            var res = _afw.ParseEvent(er.Object);
+            var res = AdaptiveFirewall.ParseEvent(er.Object);
 
             // assert
             Assert.AreEqual(140, res.EventId);
@@ -108,7 +108,7 @@ namespace AdaptiveFirewallService.Test
             er.SetupGet(evtr => evtr.TimeCreated).Returns(DateTime.Parse("2018-09-28T16:50:56.694245200Z"));
 
             // process
-            var res = _afw.ParseEvent(er.Object);
+            var res = AdaptiveFirewall.ParseEvent(er.Object);
 
             // assert
             Assert.AreEqual(4625, res.EventId);
