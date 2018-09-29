@@ -11,7 +11,7 @@ namespace SCAdaptiveFirewall
         /// <summary>
         /// Given an ip, subnet address, and number
         /// of mask bits, determine whether ip is in subnet
-        /// Found mostly:
+        /// Derived from example here:
         /// https://stackoverflow.com/questions/1499269/how-to-check-if-an-ip-address-is-within-a-particular-subnet
         /// </summary>
         /// <param name="ip"></param>

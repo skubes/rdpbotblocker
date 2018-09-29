@@ -73,17 +73,18 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Network.cs" />
+    <Compile Include="PowerShellHelper.cs" />
     <Compile Include="ProjectInstaller.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="ProjectInstaller.Designer.cs">
       <DependentUpon>ProjectInstaller.cs</DependentUpon>
     </Compile>
-    <Compile Include="SCAdaptiveFirewall.cs">
+    <Compile Include="AdaptiveFirewall.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="SCAdaptiveFirewall.Designer.cs">
-      <DependentUpon>SCAdaptiveFirewall.cs</DependentUpon>
+    <Compile Include="AdaptiveFirewall.Designer.cs">
+      <DependentUpon>AdaptiveFirewall.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

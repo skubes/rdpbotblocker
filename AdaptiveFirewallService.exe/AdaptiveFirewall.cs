@@ -5,13 +5,11 @@ using System.Diagnostics.Eventing.Reader;
 using System.IO;
 using System.ServiceProcess;
 using System.Xml;
-using System.Management.Automation;
-using System.Collections.ObjectModel;
 using IPInfo = System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<SCAdaptiveFirewall.InterestingSecurityFailure>>;
 using System.Threading;
-using System.Management.Automation.Runspaces;
 using System.Configuration;
 using System.Globalization;
+using System.Collections.ObjectModel;
 
 namespace SCAdaptiveFirewall
 {
@@ -23,7 +21,7 @@ namespace SCAdaptiveFirewall
         readonly EventLogWatcher _seclogwatcher;
         readonly EventLogWatcher _rdplogwatcher;
         readonly Object _datalock = new object();
-        public static List<Subnet> LocalSubnets { get; private set; }
+        public static Collection<Subnet> LocalSubnets { get; private set; }
         static string _blockscript = @"
         [CmdletBinding()]
         Param(
@@ -156,53 +154,7 @@ namespace SCAdaptiveFirewall
                 }
             }
         }
-        /// <summary>
-        /// Runs commmands or script in a new
-        /// PowerShell pipeline.
-        /// </summary>
-        /// <param name="script"></param>
-        /// <param name="parameters"></param>
-        /// <returns>A collection of PSObjects that were returned from the script or command</returns>
-        static Collection<PSObject> RunPowerShellScript(string script, Dictionary<String, Object> parameters)
-        {
-            Collection<PSObject> objects;
-            using (RunspacePool rsp = RunspaceFactory.CreateRunspacePool())
-            {
-                rsp.Open();
-                PowerShell instance = null;
-                try
-                {
-                    instance = PowerShell.Create();
-                    instance.RunspacePool = rsp;
-                    instance.AddScript(script);
-                    if (parameters != null)
-                    {
-                        foreach (var p in parameters)
-                        {
-                            instance.AddParameter(p.Key, p.Value);
-                        }
-                    }
 
-                    objects = instance.Invoke();
-
-                    foreach (var e in instance.Streams.Error)
-                    {
-                        WriteInfo($"{e}");
-                    }
-
-                    foreach (var i in instance.Streams.Information)
-                    {
-                        WriteInfo($"{i}");
-                    }
-                }
-                finally
-                {
-                    instance?.Dispose();
-                }
-            }
-
-            return objects ?? new Collection<PSObject>();
-        }
         /// <summary>
         /// Kicks off handling of interesting events by reading 
         /// metadata from Event XML.
@@ -347,8 +299,17 @@ namespace SCAdaptiveFirewall
             {
                 { "IpAddress", $"{ip}" }
             };
+
            WriteInfo($"Calling PowerShell script to block ip {ip}");
-           RunPowerShellScript(_blockscript, dict);
+           var res = PowerShellHelper.RunPowerShellScript(_blockscript, dict);
+            foreach (var e in res.Errors)
+            {
+                WriteInfo($"{e}");
+            }
+            foreach (var i in res.Information)
+            {
+                WriteInfo($"{i}");
+            }
         }
 
         /// <summary>
@@ -357,7 +318,7 @@ namespace SCAdaptiveFirewall
         /// </summary>
         public static void LoadLocalSubnetsFromConfig()
         {
-            var sublist = new List<Subnet>();
+            var sublist = new Collection<Subnet>();
             var subsconfig = ConfigurationManager.AppSettings["LocalSubnets"];
             if (subsconfig == null)
             {
