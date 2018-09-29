@@ -114,6 +114,8 @@ namespace AdaptiveFirewallService.Test
             Assert.AreEqual(4625, res.EventId);
             Assert.AreEqual("192.168.0.106", res.IP);
             Assert.AreEqual(DateTime.Parse("2018-09-28T16:50:56.694245200Z"), res.Date);
+            Assert.AreEqual("sdf", res.Domain);
+            Assert.AreEqual("dsflk", res.UserName);
         }
     }
 }
