@@ -10,7 +10,7 @@ This app is a Windows service that monitors the Windows and Remote Desktop event
 A unique feature of this Windows service is that it can run Powershell scripts inside it's own process.  This enables the code to update Windows Firewall to use the simple powershell commands instead of some verbose c# code.
 
 ## Building
-Open .sln file with Visual Studio 2017 and build solution in Debug or Release mode.
+Open .sln file with Visual Studio 2017 and build the solution in Debug or Release mode.
 
 ## Installing and configuring
 Copy built binary (under AdaptiveFirewall.exe\bin\Release for example) to an installation folder of your choosing and install the service using InstallUtil.exe. It's not recommended to leave it in the build output folder as you may want to test additional builds when the service is running. 
