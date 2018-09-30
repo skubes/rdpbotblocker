@@ -17,7 +17,6 @@ namespace AdaptiveFirewallService.Test
         [TestMethod]
         public void ConstructInstance()
         {
-            
             Assert.IsInstanceOfType(_afw, typeof(AdaptiveFirewall));
         }
         
@@ -47,7 +46,6 @@ namespace AdaptiveFirewallService.Test
             AdaptiveFirewall.LoadLocalSubnetsFromConfig();
             var subs = AdaptiveFirewall.LocalSubnets;
             Assert.AreEqual(subs.Count, expectedCount);
-           
         }
 
         [DataTestMethod]
@@ -62,7 +60,6 @@ namespace AdaptiveFirewallService.Test
             AdaptiveFirewall.LoadLocalSubnetsFromConfig();
             var res = AdaptiveFirewall.IsLocalAddress(ip);
             Assert.AreEqual(res, expected);
-
         }
 
         [TestMethod]

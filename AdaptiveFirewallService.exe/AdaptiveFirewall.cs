@@ -22,35 +22,26 @@ namespace SCAdaptiveFirewall
         readonly EventLogWatcher _rdplogwatcher;
         readonly Object _datalock = new object();
         public static Collection<Subnet> LocalSubnets { get; private set; }
-        static string _blockscript = @"
-        [CmdletBinding()]
-        Param(
-            [Parameter(Mandatory=$true)]
-            [string] $IpAddress
-        )
-        function Info {
-            Param($InfoMessage)
-                Write-Information ""{PowerShell script} $InfoMessage""
+        static string _blockscript = LoadBlockScript();
+
+        private static string LoadBlockScript()
+        {
+            MemoryStream ms = null;
+            try
+            {
+                ms = new MemoryStream(Properties.Resources.BlockIp);
+                using (var sr = new StreamReader(ms))
+                {
+                    ms = null;
+                    return sr.ReadToEnd();
+                }
+            }
+            finally
+            {
+                ms?.Dispose();
+            }
         }
 
-        $InformationPreference = 'Continue'
-
-        Info ""Getting exising blocked IPs from firewall rule (Block RDP Bots)""
-        $filter = Get-NetFirewallRule -DisplayName ""Block RDP Bots"" -ErrorAction Stop | Get-NetFirewallAddressFilter
-        $existingIps = $filter.RemoteAddress
-        Info ""   found [$($existingIps.Count)] IPs""
-        Info ""   done.""
-
-        $distinctIps = New-Object 'Collections.Generic.HashSet[String]'
-        $existingIps |
-            ForEach-Object {
-                $distinctIps.Add($_) | Out-Null
-        }
-        $distinctIps.Add($IpAddress) | Out-Null
-        if ($distinctIps.Count -gt $existingIps.Count) {
-             Set-NetFirewallAddressFilter -InputObject $filter -RemoteAddress $distinctIps
-        }
-";
         /// <summary>
         ///  Constructor
         /// </summary>
@@ -219,11 +210,11 @@ namespace SCAdaptiveFirewall
         /// </summary>
         /// <param name="IPAddress"></param>
         /// <returns></returns>
-        public static bool IsLocalAddress(string IPAddress)
+        public static bool IsLocalAddress(string IpAddress)
         {
             foreach (var s in LocalSubnets)
             {
-                if (Network.IsAddressInSubnet(IPAddress, s))
+                if (Network.IsAddressInSubnet(IpAddress, s))
                 {
                     return true;
                 }
@@ -302,7 +293,7 @@ namespace SCAdaptiveFirewall
         {
             var dict = new Dictionary<string, object>
             {
-                { "IpAddress", $"{ip}" }
+                { "IpAddress", ip }
             };
 
            WriteInfo($"Calling PowerShell script to block ip {ip}");
