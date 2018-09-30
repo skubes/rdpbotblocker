@@ -39,13 +39,29 @@ namespace SCAdaptiveFirewall
 
                     objects = instance.Invoke();
 
-                    var res = new PSResults
-                    {
-                        ReturnedObjects = objects ?? new Collection<PSObject>(),
-                        Errors = instance.Streams.Error,
-                        Information = instance.Streams.Information
-                    };
+                    var res = new PSResults();
+                    res.ReturnedObjects = objects ?? new Collection<PSObject>();
 
+                    if (instance.Streams.Error.Count > 0)
+                    {
+                        res.Errors = new ErrorRecord[instance.Streams.Error.Count];
+                        instance.Streams.Error.CopyTo(res.Errors, 0);
+                    }
+                    else
+                    {
+                        res.Errors = new ErrorRecord[0];
+                    }
+
+                    if (instance.Streams.Information.Count > 0)
+                    {
+                        res.Information = new InformationRecord[instance.Streams.Information.Count];
+                        instance.Streams.Information.CopyTo(res.Information, 0);
+                    }
+                    else
+                    {
+                        res.Information = new InformationRecord[0];
+                    }
+                    
                     return res;
                 }
                 finally
@@ -55,10 +71,11 @@ namespace SCAdaptiveFirewall
             }
         }
     }
-    public class PSResults
+
+    internal class PSResults
     {
-        public Collection<PSObject> ReturnedObjects { get; set; }
-        public PSDataCollection<ErrorRecord> Errors { get; set; }
-        public PSDataCollection<InformationRecord> Information { get; set; }
+        public Collection<PSObject> ReturnedObjects;
+        public ErrorRecord[] Errors;
+        public InformationRecord[] Information;
     }
 }

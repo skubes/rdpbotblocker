@@ -15,7 +15,7 @@ namespace AdaptiveFirewallService.Test
         readonly AdaptiveFirewall _afw = new AdaptiveFirewall();
 
         [TestMethod]
-        public void ClassInstanceShouldHaveConstructed()
+        public void ConstructInstance()
         {
             
             Assert.IsInstanceOfType(_afw, typeof(AdaptiveFirewall));
@@ -56,7 +56,7 @@ namespace AdaptiveFirewallService.Test
         [DataRow("192.168.1.111", "192.168.0.0/24", false)]
         [DataRow("192.168.1.111", "192.168.0.0/24,192.168.1.0/24", true)]
         [DataRow("192.168.0.111", "192.168.0.0/24,192.168.1.0/24", true)]
-        public void IsLocalIP(string ip, string setting, bool expected)
+        public void DetermineIfIpIsLocal(string ip, string setting, bool expected)
         {
             ConfigurationManager.AppSettings.Set("LocalSubnets", setting);
             AdaptiveFirewall.LoadLocalSubnetsFromConfig();
@@ -66,7 +66,7 @@ namespace AdaptiveFirewallService.Test
         }
 
         [TestMethod]
-        public void CorrectlyParseEvent140()
+        public void ParseEvent140()
         {
             // setup
             var fs = new FileStream(Path.Combine(Environment.CurrentDirectory, "..\\..\\Test Data\\Event140.xml"),FileMode.Open);
@@ -90,7 +90,7 @@ namespace AdaptiveFirewallService.Test
         }
 
         [TestMethod]
-        public void CorrectlyParseEvent4625()
+        public void ParseEvent4625()
         {
             // setup
             var fs = new FileStream(Path.Combine(Environment.CurrentDirectory, "..\\..\\Test Data\\Event4625.xml"), FileMode.Open);

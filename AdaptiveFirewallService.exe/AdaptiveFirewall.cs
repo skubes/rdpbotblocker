@@ -181,20 +181,25 @@ namespace SCAdaptiveFirewall
             BlockIpIfNecessary(isf);
         }
 
-        public static InterestingSecurityFailure ParseEvent(EventRecord er)
+        public static InterestingSecurityFailure ParseEvent(EventRecord eventRecord)
         {
+            if (eventRecord == null)
+            {
+                throw new ArgumentNullException(nameof(eventRecord));
+            }
+
             var xml = new XmlDocument();
-            xml.LoadXml(er.ToXml());
+            xml.LoadXml(eventRecord.ToXml());
             var ns = new XmlNamespaceManager(xml.NameTable);
             ns.AddNamespace("a", "http://schemas.microsoft.com/win/2004/08/events/event");
 
             var isf = new InterestingSecurityFailure
             {
-                Date = er.TimeCreated,
-                EventId = er.Id
+                Date = eventRecord.TimeCreated,
+                EventId = eventRecord.Id
             };
 
-            switch (er.Id)
+            switch (eventRecord.Id)
             {
                 case 4625:
                     isf.IP = (xml.SelectSingleNode("//a:Data[@Name=\"IpAddress\"]", ns))?.InnerText;
@@ -212,13 +217,13 @@ namespace SCAdaptiveFirewall
         /// Given an Ip determine if it is a "local"
         /// ip that should be ignored.  
         /// </summary>
-        /// <param name="ip"></param>
+        /// <param name="IPAddress"></param>
         /// <returns></returns>
-        public static bool IsLocalAddress(string ip)
+        public static bool IsLocalAddress(string IPAddress)
         {
             foreach (var s in LocalSubnets)
             {
-                if (Network.IsAddressInSubnet(ip, s))
+                if (Network.IsAddressInSubnet(IPAddress, s))
                 {
                     return true;
                 }
