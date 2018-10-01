@@ -165,7 +165,7 @@ namespace SCAdaptiveFirewall
 
             if (IsLocalAddress(isf.IP))
             {
-                WriteInfo($"Local address found [{isf.IP}]. Skipping.");
+                WriteInfo($"{isf.IP} is local address. Skipping.");
                 return;
             }
 
@@ -297,15 +297,25 @@ namespace SCAdaptiveFirewall
             };
 
            WriteInfo($"Calling PowerShell script to block ip {ip}");
-           var res = PowerShellHelper.RunPowerShellScript(_blockscript, dict);
-            foreach (var e in res.Errors)
+            try
             {
-                WriteInfo($"{e}");
+                var res = PowerShellHelper.RunPowerShellScript(_blockscript, dict);
+                foreach (var e in res.Errors)
+                {
+                    WriteInfo($"{e}");
+                }
+                foreach (var i in res.Information)
+                {
+                    WriteInfo($"{i}");
+                }
             }
-            foreach (var i in res.Information)
+            catch (TypeLoadException e)
             {
-                WriteInfo($"{i}");
+                WriteInfo("Failed to run Powershell script!! Is PowerShell 5.1 installed? (WMF 5.1):");
+                WriteInfo("https://www.microsoft.com/en-us/download/details.aspx?id=54616");
+                WriteInfo(e.ToString());
             }
+
         }
 
         /// <summary>
@@ -343,12 +353,12 @@ namespace SCAdaptiveFirewall
                 }
                 catch (FormatException)
                 {
-                    WriteInfo($"Failure while parsing LocalSubnets config setting. Couldn't convert '{parts[1]}' to an int");
+                    WriteInfo($"Failure while parsing LocalSubnets config setting. Couldn't convert '{parts[1]}' to an int for entry {entry}");
                     continue;
                 }
                 catch (IndexOutOfRangeException)
                 {
-                    WriteInfo($"Failure while parsing LocalSubnets config setting. Make sure value in the format Address/maskbits");
+                    WriteInfo($"Failure while parsing LocalSubnets config setting for entry {entry}. Make sure value in the format Address/maskbits");
                     continue;
                 }
                 if (s != null)
