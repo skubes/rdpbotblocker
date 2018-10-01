@@ -32,7 +32,7 @@ catch [Microsoft.PowerShell.Cmdletization.Cim.CimJobException]{
 
 if ($CreateRule)
 {
-    Info "Firewall rule not found. Creating new."
+    Info "   firewall rule not found. Creating new."
     # rule not found, create it
     $createArgs = @{
         DisplayName = $FirewallRuleName;
