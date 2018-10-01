@@ -25,7 +25,7 @@ namespace SCAdaptiveFirewall
                 return false;
             }
 
-            var sad = s.IPObject;
+            var sad = s.IPAddressObject;
             var adbytes = ad.GetAddressBytes();
             var sadbytes = sad.GetAddressBytes();
             IPAddress mad;
@@ -110,7 +110,7 @@ namespace SCAdaptiveFirewall
                 if (IPAddress.TryParse(value, out IPAddress address))
                 {
                     _address = value;
-                    IPObject = address;
+                    IPAddressObject = address;
                 }
                 else
                 {
@@ -120,15 +120,15 @@ namespace SCAdaptiveFirewall
             }
         }
 
-        public IPAddress IPObject { get; private set; }
+        public IPAddress IPAddressObject { get; private set; }
 
         public int MaskBits
         {
             get { return _maskbits; }
             set
             {
-                if (IPObject != null
-                    && IPObject.AddressFamily == AddressFamily.InterNetworkV6)
+                if (IPAddressObject != null
+                    && IPAddressObject.AddressFamily == AddressFamily.InterNetworkV6)
                 {
                     if (value > 0 && value < 128)
                     {
@@ -140,8 +140,8 @@ namespace SCAdaptiveFirewall
                             value, "Subnet mask bits must be between 1 and 127 for IPv6 addresses");
                     }
                 }
-                else if (IPObject != null
-                    && IPObject.AddressFamily == AddressFamily.InterNetwork)
+                else if (IPAddressObject != null
+                    && IPAddressObject.AddressFamily == AddressFamily.InterNetwork)
                 {
                     if (value > 0 && value < 32)
                     {

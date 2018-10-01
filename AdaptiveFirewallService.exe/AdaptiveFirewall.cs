@@ -210,11 +210,11 @@ namespace SCAdaptiveFirewall
         /// </summary>
         /// <param name="IPAddress"></param>
         /// <returns></returns>
-        public static bool IsLocalAddress(string IpAddress)
+        public static bool IsLocalAddress(string internetAddress)
         {
             foreach (var s in LocalSubnets)
             {
-                if (Network.IsAddressInSubnet(IpAddress, s))
+                if (Network.IsAddressInSubnet(internetAddress, s))
                 {
                     return true;
                 }
@@ -234,7 +234,7 @@ namespace SCAdaptiveFirewall
             // just straight up block event 140 ips for now!! as a test:)
             if (isf.EventId == 140)
             {
-                BlockIp(isf.IP);
+                TryBlockIp(isf.IP);
                 return;
             }
 
@@ -260,7 +260,7 @@ namespace SCAdaptiveFirewall
 
             if (secfailures >= SecFailureCountThreshold)
             {
-                BlockIp(isf.IP);
+                TryBlockIp(isf.IP);
             }
         }
 
@@ -284,6 +284,20 @@ namespace SCAdaptiveFirewall
             }
         }
 
+        private static void TryBlockIp(string internetAddress)
+        {
+            try
+            {
+                BlockIp(internetAddress);
+            }
+            catch (TypeLoadException e)
+            {
+                WriteInfo(e.ToString());
+                WriteInfo("Failed to run Powershell script!! Is PowerShell 5.1 installed? (WMF 5.1):");
+                WriteInfo("https://www.microsoft.com/en-us/download/details.aspx?id=54616");
+            }
+        }
+
         /// <summary>
         /// Given an IP string, block address using
         /// PowerShell script.
@@ -296,26 +310,17 @@ namespace SCAdaptiveFirewall
                 { "IpAddress", ip }
             };
 
-           WriteInfo($"Calling PowerShell script to block ip {ip}");
-            try
-            {
-                var res = PowerShellHelper.RunPowerShellScript(_blockscript, dict);
-                foreach (var e in res.Errors)
-                {
-                    WriteInfo($"{e}");
-                }
-                foreach (var i in res.Information)
-                {
-                    WriteInfo($"{i}");
-                }
-            }
-            catch (TypeLoadException e)
-            {
-                WriteInfo("Failed to run Powershell script!! Is PowerShell 5.1 installed? (WMF 5.1):");
-                WriteInfo("https://www.microsoft.com/en-us/download/details.aspx?id=54616");
-                WriteInfo(e.ToString());
-            }
+            WriteInfo($"Calling PowerShell script to block ip {ip}");
 
+            var res = PowerShellHelper.RunPowerShellScript(_blockscript, dict);
+            foreach (var e in res.Errors)
+            {
+                WriteInfo($"{e}");
+            }
+            foreach (var i in res.Information)
+            {
+                WriteInfo($"{i}");
+            }
         }
 
         /// <summary>
@@ -358,7 +363,7 @@ namespace SCAdaptiveFirewall
                 }
                 catch (IndexOutOfRangeException)
                 {
-                    WriteInfo($"Failure while parsing LocalSubnets config setting for entry {entry}. Make sure value in the format Address/maskbits");
+                    WriteInfo($"Failure while parsing LocalSubnets config setting for entry {entry}. Make sure value is in CIDR notation (address/maskbits) for example '18.42.124.13/20");
                     continue;
                 }
                 if (s != null)

@@ -11,7 +11,7 @@ function Info {
     Param($InfoMessage)
         Write-Information "{PowerShell script} $InfoMessage"
 }
-$FirewallRuleName = "AdaptiveFirwallService-Block RDP bots"
+$FirewallRuleName = "AdaptiveFirewallService-Block RDP bots"
 $CreateRule = $false
 $InformationPreference = 'Continue'
 
@@ -21,7 +21,7 @@ try {
 }
 catch [Microsoft.PowerShell.Cmdletization.Cim.CimJobException]{
 
-   if ($_.Exception.Message -like 'No MSFT_NetFirewallRule objects found with property*')
+   if ($_.Exception.Message -like "No MSFT_NetFirewallRule objects found with property 'DisplayName' equal to*")
    {
        $CreateRule = $true
    }

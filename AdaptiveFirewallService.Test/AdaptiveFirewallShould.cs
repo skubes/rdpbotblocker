@@ -40,6 +40,7 @@ namespace AdaptiveFirewallService.Test
         [DataRow("192.168.1111.0/24,", 0)]
         [DataRow("192.168.11.0/,", 0)]
         [DataRow("a;ldkfjs/23h,;lk/xhjsdfg", 0)]
+        [DataRow("2.5.5.2", 0)]
         public void LoadWithhLocalSubnetsSetting(string setting, int expectedCount)
         {
             ConfigurationManager.AppSettings.Set("LocalSubnets", setting);
