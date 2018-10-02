@@ -22,7 +22,7 @@ Copy built binary (under `.\AdaptiveFirewall.exe\bin\Release` for example) to an
 
 I made a folder called `c:\Program files (x86)\Adaptive Firewall` for my install.
 
-Once binary and config file are copied, it is important to Install the service:
+Once the binary and config file are copied, it is important to Install the service:
 
 `InstallUtil.exe "c:\Program Files (x86)\Adaptive Firewall\AdaptiveFirewallService.exe"`
 
