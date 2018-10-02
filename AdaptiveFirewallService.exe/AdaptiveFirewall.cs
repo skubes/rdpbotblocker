@@ -307,6 +307,7 @@ namespace SCAdaptiveFirewall
         /// PowerShell script.
         /// </summary>
         /// <param name="ip"></param>
+        /// <exception cref="TypeLoadException">If powershell assemby fails to load. Is Powershell 5.1 installed?</exception>
         private static void BlockIp(string ip)
         {
             var dict = new Dictionary<string, object>

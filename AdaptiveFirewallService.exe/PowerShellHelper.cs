@@ -17,7 +17,6 @@ namespace SCAdaptiveFirewall
         /// <returns>PSResults object: A collection of PSObjects that were returned from the script or command, and
         /// the error and information streams.
         /// </returns>
-        /// <exception cref="TypeLoadException">If powershell assemby fails to load. Is Powershell 5.1 installed?</exception>
        public static PSResults RunPowerShellScript(string script, Dictionary<String, Object> parameters)
         {
             Collection<PSObject> objects;

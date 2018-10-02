@@ -66,6 +66,6 @@ if ($distinctIps.Count -gt $existingIps.Count) {
 	Info "   updated firewall to block [$IpAddress]"
 }
 else {
-	Info "   didn't have to update rule since address is already blocked"
+	Info "   didn't have to update rule since [$IpAddress] is already blocked"
 }
 Info "Done."
