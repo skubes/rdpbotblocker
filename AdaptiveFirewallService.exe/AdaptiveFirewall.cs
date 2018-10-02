@@ -10,6 +10,7 @@ using System.Threading;
 using System.Configuration;
 using System.Globalization;
 using System.Collections.ObjectModel;
+using System.Net;
 
 namespace SCAdaptiveFirewall
 {
@@ -157,11 +158,14 @@ namespace SCAdaptiveFirewall
 
             var isf = ParseEvent(er);
 
-            if (isf.IP == null)
+            if (isf.IP == null || !IPAddress.TryParse(isf.IP, out IPAddress ad))
             {
                 WriteInfo("Couldn't read IP address from event.  Nothing to do.");
                 return;
             }
+
+            // Canonicalize IP
+            isf.IP = ad.ToString();
 
             if (IsLocalAddress(isf.IP))
             {
