@@ -1,6 +1,8 @@
 <#
 	Script run to block suspect Ips with Windows
 	firewall.
+
+	If "$FirewallRuleName" (set below) doesn't exist it will be created.
 #>
 [CmdletBinding()]
 Param(
@@ -16,7 +18,7 @@ $CreateRule = $false
 $InformationPreference = 'Continue'
 
 try {
-    Info "Getting exising blocked IPs from firewall rule [$FirewallRuleName]"
+    Info "Checking firewall rule [$FirewallRuleName]"
     $rule = Get-NetFirewallRule -DisplayName $FirewallRuleName -ErrorAction Stop
 }
 catch [Microsoft.PowerShell.Cmdletization.Cim.CimJobException]{
@@ -32,7 +34,7 @@ catch [Microsoft.PowerShell.Cmdletization.Cim.CimJobException]{
 
 if ($CreateRule)
 {
-    Info "   firewall rule not found. Creating new."
+    Info "   firewall rule not found. Creating new rule and setting IP $IpAddress to blocked"
     # rule not found, create it
     $createArgs = @{
         DisplayName = $FirewallRuleName;
@@ -45,14 +47,13 @@ if ($CreateRule)
     $filter = $rule | Get-NetFirewallAddressFilter
     Set-NetFirewallAddressFilter -InputObject $filter -RemoteAddress $IpAddress
     Set-NetFirewallRule -InputObject $rule -Enabled True
-    Info "   done."
+    Info "Done."
     return
 }
 
 $filter = $rule | Get-NetFirewallAddressFilter
 $existingIps = $filter.RemoteAddress
-Info "   found [$($existingIps.Count)] IPs"
-Info "   done."
+Info "   found [$($existingIps.Count)] existing IPs"
 
 $distinctIps = New-Object 'Collections.Generic.HashSet[String]'
 $existingIps |
@@ -62,4 +63,9 @@ $existingIps |
 $distinctIps.Add($IpAddress) | Out-Null
 if ($distinctIps.Count -gt $existingIps.Count) {
     Set-NetFirewallAddressFilter -InputObject $filter -RemoteAddress $distinctIps
+	Info "   updated firewall to block [$IpAddress]"
 }
+else {
+	Info "   didn't have to update rule since address is already blocked"
+}
+Info "Done."
