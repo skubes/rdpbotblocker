@@ -130,27 +130,27 @@ namespace SCAdaptiveFirewall
                 if (IPAddressObject != null
                     && IPAddressObject.AddressFamily == AddressFamily.InterNetworkV6)
                 {
-                    if (value > 0 && value < 128)
+                    if (value >= 0 && value <= 128)
                     {
                         _maskbits = value;
                     }
                     else
                     {
                         throw new ArgumentOutOfRangeException(nameof(value),
-                            value, "Subnet mask bits must be between 1 and 127 for IPv6 addresses");
+                            value, "Subnet mask bits must be between 0 and 128 for IPv6 addresses");
                     }
                 }
                 else if (IPAddressObject != null
                     && IPAddressObject.AddressFamily == AddressFamily.InterNetwork)
                 {
-                    if (value > 0 && value < 32)
+                    if (value >= 0 && value <= 32)
                     {
                         _maskbits = value;
                     }
                     else
                     {
                         throw new ArgumentOutOfRangeException(nameof(value),
-                            value, "Subnet mask bits must be between 1 and 31 for IPv4 addresses");
+                            value, "Subnet mask bits must be between 0 and 32 for IPv4 addresses");
                     }
                 }
             }

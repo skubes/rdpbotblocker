@@ -5,6 +5,7 @@ using Moq;
 using System.Diagnostics.Eventing.Reader;
 using System.IO;
 using System;
+using System.Net;
 
 namespace AdaptiveFirewallService.Test
 {
@@ -25,26 +26,30 @@ namespace AdaptiveFirewallService.Test
         /// Different rows test different cases, some
         /// where users incorrectly format
         /// the setting. (Should be CIDR notation)
+        /// 
+        /// There is one subnet by default, the ipv4
+        /// link-local one. So if no config is given the 
+        /// count will equal 1.
         /// </summary>
         /// <param name="setting"></param>
         /// <param name="expectedCount"></param>
         [DataTestMethod]
-        [DataRow("", 0)]
-        [DataRow("192.168.1.0/24",1)]
-        [DataRow("2.3/24",1)]
-        [DataRow("2.3.2.1/50", 0)]
-        [DataRow("192.168.1.0/24,192.168.2.0/24",2)]
-        [DataRow("192.168.1.0/24,", 1)]
-        [DataRow("192.168.1.0/0,", 0)]
-        [DataRow("192.168.1.0/33,", 0)]
-        [DataRow("192.168.1111.0/24,", 0)]
-        [DataRow("192.168.11.0/,", 0)]
-        [DataRow("a;ldkfjs/23h,;lk/xhjsdfg", 0)]
-        [DataRow("2.5.5.2", 0)]
+        [DataRow("", 1)]
+        [DataRow("192.168.1.0/24",2)]
+        [DataRow("2.3/24",2)]
+        [DataRow("2.3.2.1/50", 1)]
+        [DataRow("192.168.1.0/24,192.168.2.0/24",3)]
+        [DataRow("192.168.1.0/24,", 2)]
+        [DataRow("192.168.1.0/0,", 1)]
+        [DataRow("192.168.1.0/33,", 1)]
+        [DataRow("192.168.1111.0/24,", 1)]
+        [DataRow("192.168.11.0/,", 1)]
+        [DataRow("a;ldkfjs/23h,;lk/xhjsdfg", 1)]
+        [DataRow("2.5.5.2", 1)]
         public void LoadWithhLocalSubnetsSetting(string setting, int expectedCount)
         {
             ConfigurationManager.AppSettings.Set("LocalSubnets", setting);
-            AdaptiveFirewall.LoadLocalSubnetsFromConfig();
+            AdaptiveFirewall.PopulateLocalSubnets();
             var subs = AdaptiveFirewall.LocalSubnets;
             Assert.AreEqual(subs.Count, expectedCount);
         }
@@ -55,11 +60,15 @@ namespace AdaptiveFirewallService.Test
         [DataRow("192.168.1.111", "192.168.0.0/24", false)]
         [DataRow("192.168.1.111", "192.168.0.0/24,192.168.1.0/24", true)]
         [DataRow("192.168.0.111", "192.168.0.0/24,192.168.1.0/24", true)]
+        [DataRow("fe80::60fb:646c:d365:36ba", "", true)]
+        [DataRow("169.254.25.5", "", true)]
+
         public void DetermineIfIpIsLocal(string ip, string setting, bool expected)
         {
             ConfigurationManager.AppSettings.Set("LocalSubnets", setting);
-            AdaptiveFirewall.LoadLocalSubnetsFromConfig();
-            var res = AdaptiveFirewall.IsLocalAddress(ip);
+            AdaptiveFirewall.PopulateLocalSubnets();
+            var ipobj = IPAddress.Parse(ip);
+            var res = AdaptiveFirewall.IsLocalAddress(ipobj);
             Assert.AreEqual(res, expected);
         }
 

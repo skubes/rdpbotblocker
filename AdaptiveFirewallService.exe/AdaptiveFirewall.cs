@@ -11,6 +11,7 @@ using System.Configuration;
 using System.Globalization;
 using System.Collections.ObjectModel;
 using System.Net;
+using System.Net.Sockets;
 
 namespace SCAdaptiveFirewall
 {
@@ -83,7 +84,7 @@ namespace SCAdaptiveFirewall
             var logpath = Path.Combine(Path.GetTempPath(), "AdaptiveFirewall.log");
             _log = new StreamWriter(logpath, true);
             _log.AutoFlush = true;
-            LoadLocalSubnetsFromConfig();
+            PopulateLocalSubnets();
         }
 
         public int SecFailureCountThreshold { get; } = 5;
@@ -167,7 +168,7 @@ namespace SCAdaptiveFirewall
             // Canonicalize IP
             isf.IP = ad.ToString();
 
-            if (IsLocalAddress(isf.IP))
+            if (IsLocalAddress(ad))
             {
                 WriteInfo($"{isf.IP} is local address. Skipping.");
                 return;
@@ -214,16 +215,38 @@ namespace SCAdaptiveFirewall
         /// </summary>
         /// <param name="IPAddress"></param>
         /// <returns></returns>
-        public static bool IsLocalAddress(string internetAddress)
+        public static bool IsLocalAddress(IPAddress internetAddress)
         {
-            foreach (var s in LocalSubnets)
+            switch (internetAddress.AddressFamily)
             {
-                if (Network.IsAddressInSubnet(internetAddress, s))
-                {
+                case AddressFamily.InterNetwork:
+                    foreach (var s in LocalSubnets)
+                    {
+                        if (Network.IsAddressInSubnet(internetAddress.ToString(), s))
+                        {
+                            return true;
+                        }
+                    }
+                    return false;
+                case AddressFamily.InterNetworkV6:
+                    if (internetAddress.IsIPv6LinkLocal)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        foreach (var s in LocalSubnets)
+                        {
+                            if (Network.IsAddressInSubnet(internetAddress.ToString(), s))
+                            {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                default:
                     return true;
-                }
             }
-            return false;
         }
 
 
@@ -332,9 +355,19 @@ namespace SCAdaptiveFirewall
         ///  Read config file appsetting "LocalSubnets" and update
         ///  corresponding list of Subnet objects.
         /// </summary>
-        public static void LoadLocalSubnetsFromConfig()
+        public static void PopulateLocalSubnets()
         {
             var sublist = new Collection<Subnet>();
+
+            // add IPv4 link-local subnet
+            var ipautosub = new Subnet
+            {
+                Address = "169.254.0.0",
+                MaskBits = 16
+            };
+            sublist.Add(ipautosub);
+
+            // add subnets from config file
             var subsconfig = ConfigurationManager.AppSettings["LocalSubnets"];
             if (subsconfig == null)
             {
