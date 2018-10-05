@@ -39,22 +39,22 @@ namespace SCAdaptiveFirewall
 
                 maskoctets = new[]
                 {
-                    (byte)((mask & BigInteger.Parse("00FF000000000000000000000000000000", NumberStyles.HexNumber)) >> 120),
-                    (byte)((mask & BigInteger.Parse("0000FF0000000000000000000000000000", NumberStyles.HexNumber)) >> 112),
-                    (byte)((mask & BigInteger.Parse("000000FF00000000000000000000000000", NumberStyles.HexNumber)) >> 104),
-                    (byte)((mask & BigInteger.Parse("00000000FF000000000000000000000000", NumberStyles.HexNumber)) >> 96),
-                    (byte)((mask & BigInteger.Parse("0000000000FF0000000000000000000000", NumberStyles.HexNumber)) >> 88),
-                    (byte)((mask & BigInteger.Parse("000000000000FF00000000000000000000", NumberStyles.HexNumber)) >> 80),
-                    (byte)((mask & BigInteger.Parse("00000000000000FF000000000000000000", NumberStyles.HexNumber)) >> 72),
-                    (byte)((mask & BigInteger.Parse("0000000000000000FF0000000000000000", NumberStyles.HexNumber)) >> 64),
-                    (byte)((mask & BigInteger.Parse("000000000000000000FF00000000000000", NumberStyles.HexNumber)) >> 56),
-                    (byte)((mask & BigInteger.Parse("00000000000000000000FF000000000000", NumberStyles.HexNumber)) >> 48),
-                    (byte)((mask & BigInteger.Parse("0000000000000000000000FF0000000000", NumberStyles.HexNumber)) >> 40),
-                    (byte)((mask & BigInteger.Parse("000000000000000000000000FF00000000", NumberStyles.HexNumber)) >> 32),
-                    (byte)((mask & BigInteger.Parse("00000000000000000000000000FF000000", NumberStyles.HexNumber)) >> 24),
-                    (byte)((mask & BigInteger.Parse("0000000000000000000000000000FF0000", NumberStyles.HexNumber)) >> 16),
-                    (byte)((mask & BigInteger.Parse("000000000000000000000000000000FF00", NumberStyles.HexNumber)) >> 8),
-                    (byte)((mask & BigInteger.Parse("00000000000000000000000000000000FF", NumberStyles.HexNumber)) >> 0),
+                    (byte)((mask & BigInteger.Parse("00FF000000000000000000000000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 120),
+                    (byte)((mask & BigInteger.Parse("0000FF0000000000000000000000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 112),
+                    (byte)((mask & BigInteger.Parse("000000FF00000000000000000000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 104),
+                    (byte)((mask & BigInteger.Parse("00000000FF000000000000000000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 96),
+                    (byte)((mask & BigInteger.Parse("0000000000FF0000000000000000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 88),
+                    (byte)((mask & BigInteger.Parse("000000000000FF00000000000000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 80),
+                    (byte)((mask & BigInteger.Parse("00000000000000FF000000000000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 72),
+                    (byte)((mask & BigInteger.Parse("0000000000000000FF0000000000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 64),
+                    (byte)((mask & BigInteger.Parse("000000000000000000FF00000000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 56),
+                    (byte)((mask & BigInteger.Parse("00000000000000000000FF000000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 48),
+                    (byte)((mask & BigInteger.Parse("0000000000000000000000FF0000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 40),
+                    (byte)((mask & BigInteger.Parse("000000000000000000000000FF00000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 32),
+                    (byte)((mask & BigInteger.Parse("00000000000000000000000000FF000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 24),
+                    (byte)((mask & BigInteger.Parse("0000000000000000000000000000FF0000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 16),
+                    (byte)((mask & BigInteger.Parse("000000000000000000000000000000FF00", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 8),
+                    (byte)((mask & BigInteger.Parse("00000000000000000000000000000000FF", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 0),
                 };
             }
             else if (sad.AddressFamily == AddressFamily.InterNetwork)

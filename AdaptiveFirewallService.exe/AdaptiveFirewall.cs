@@ -217,6 +217,11 @@ namespace SCAdaptiveFirewall
         /// <returns></returns>
         public static bool IsLocalAddress(IPAddress internetAddress)
         {
+            if (internetAddress == null)
+            {
+                throw new ArgumentNullException(nameof(internetAddress));
+            }
+
             switch (internetAddress.AddressFamily)
             {
                 case AddressFamily.InterNetwork:
