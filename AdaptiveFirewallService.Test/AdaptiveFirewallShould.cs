@@ -40,7 +40,7 @@ namespace AdaptiveFirewallService.Test
         [DataRow("2.3.2.1/50", 1)]
         [DataRow("192.168.1.0/24,192.168.2.0/24",3)]
         [DataRow("192.168.1.0/24,", 2)]
-        [DataRow("192.168.1.0/0,", 1)]
+        [DataRow("192.168.1.0/0,", 2)]
         [DataRow("192.168.1.0/33,", 1)]
         [DataRow("192.168.1111.0/24,", 1)]
         [DataRow("192.168.11.0/,", 1)]

@@ -1,8 +1,9 @@
 ﻿using System;
-using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
-using System.Numerics;
+using static System.Numerics.BigInteger;
+using static System.Globalization.CultureInfo;
+using static System.Globalization.NumberStyles;
 
 namespace SCAdaptiveFirewall
 {
@@ -34,27 +35,27 @@ namespace SCAdaptiveFirewall
 
             if (sad.AddressFamily == AddressFamily.InterNetworkV6)
             {
-                var mask = BigInteger.Parse("00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
-                    NumberStyles.HexNumber) << (128 - s.MaskBits);
+                var mask = Parse("00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+                    HexNumber) << (128 - s.MaskBits);
 
                 maskoctets = new[]
                 {
-                    (byte)((mask & BigInteger.Parse("00FF000000000000000000000000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 120),
-                    (byte)((mask & BigInteger.Parse("0000FF0000000000000000000000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 112),
-                    (byte)((mask & BigInteger.Parse("000000FF00000000000000000000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 104),
-                    (byte)((mask & BigInteger.Parse("00000000FF000000000000000000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 96),
-                    (byte)((mask & BigInteger.Parse("0000000000FF0000000000000000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 88),
-                    (byte)((mask & BigInteger.Parse("000000000000FF00000000000000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 80),
-                    (byte)((mask & BigInteger.Parse("00000000000000FF000000000000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 72),
-                    (byte)((mask & BigInteger.Parse("0000000000000000FF0000000000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 64),
-                    (byte)((mask & BigInteger.Parse("000000000000000000FF00000000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 56),
-                    (byte)((mask & BigInteger.Parse("00000000000000000000FF000000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 48),
-                    (byte)((mask & BigInteger.Parse("0000000000000000000000FF0000000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 40),
-                    (byte)((mask & BigInteger.Parse("000000000000000000000000FF00000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 32),
-                    (byte)((mask & BigInteger.Parse("00000000000000000000000000FF000000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 24),
-                    (byte)((mask & BigInteger.Parse("0000000000000000000000000000FF0000", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 16),
-                    (byte)((mask & BigInteger.Parse("000000000000000000000000000000FF00", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 8),
-                    (byte)((mask & BigInteger.Parse("00000000000000000000000000000000FF", NumberStyles.HexNumber, CultureInfo.InvariantCulture)) >> 0),
+                    (byte)((mask & Parse("00FF000000000000000000000000000000", HexNumber, InvariantCulture)) >> 120),
+                    (byte)((mask & Parse("0000FF0000000000000000000000000000", HexNumber, InvariantCulture)) >> 112),
+                    (byte)((mask & Parse("000000FF00000000000000000000000000", HexNumber, InvariantCulture)) >> 104),
+                    (byte)((mask & Parse("00000000FF000000000000000000000000", HexNumber, InvariantCulture)) >> 96),
+                    (byte)((mask & Parse("0000000000FF0000000000000000000000", HexNumber, InvariantCulture)) >> 88),
+                    (byte)((mask & Parse("000000000000FF00000000000000000000", HexNumber, InvariantCulture)) >> 80),
+                    (byte)((mask & Parse("00000000000000FF000000000000000000", HexNumber, InvariantCulture)) >> 72),
+                    (byte)((mask & Parse("0000000000000000FF0000000000000000", HexNumber, InvariantCulture)) >> 64),
+                    (byte)((mask & Parse("000000000000000000FF00000000000000", HexNumber, InvariantCulture)) >> 56),
+                    (byte)((mask & Parse("00000000000000000000FF000000000000", HexNumber, InvariantCulture)) >> 48),
+                    (byte)((mask & Parse("0000000000000000000000FF0000000000", HexNumber, InvariantCulture)) >> 40),
+                    (byte)((mask & Parse("000000000000000000000000FF00000000", HexNumber, InvariantCulture)) >> 32),
+                    (byte)((mask & Parse("00000000000000000000000000FF000000", HexNumber, InvariantCulture)) >> 24),
+                    (byte)((mask & Parse("0000000000000000000000000000FF0000", HexNumber, InvariantCulture)) >> 16),
+                    (byte)((mask & Parse("000000000000000000000000000000FF00", HexNumber, InvariantCulture)) >> 8),
+                    (byte)((mask & Parse("00000000000000000000000000000000FF", HexNumber, InvariantCulture)) >> 0),
                 };
             }
             else if (sad.AddressFamily == AddressFamily.InterNetwork)
