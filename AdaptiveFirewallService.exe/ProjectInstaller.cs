@@ -25,6 +25,8 @@ namespace SCAdaptiveFirewall
             // ServiceName must equal those on ServiceBase derived classes.
             serviceInstaller.ServiceName = "Adaptive firewall";
 
+            serviceInstaller.Description = "Monitors event log entries to block IP addresses with Windows Firewall after unsuccessful logins.";
+
             // Add installers to collection. Order is not important.
             Installers.Add(serviceInstaller);
             Installers.Add(processInstaller);
