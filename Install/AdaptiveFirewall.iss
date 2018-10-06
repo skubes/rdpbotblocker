@@ -1,3 +1,8 @@
+; Installer script for Inno setup
+;
+; Created and tested w/ 5.6.1
+; http://www.jrsoftware.org/isdl.php
+
 [Setup]
 AppName=Adaptive Firewall
 AppVersion=1.0
