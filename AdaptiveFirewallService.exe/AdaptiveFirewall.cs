@@ -222,36 +222,17 @@ namespace SCAdaptiveFirewall
                 throw new ArgumentNullException(nameof(internetAddress));
             }
 
-            switch (internetAddress.AddressFamily)
+            if (internetAddress.IsIPv6LinkLocal) return true;
+
+            foreach (var s in LocalSubnets)
             {
-                case AddressFamily.InterNetwork:
-                    foreach (var s in LocalSubnets)
-                    {
-                        if (Network.IsAddressInSubnet(internetAddress.ToString(), s))
-                        {
-                            return true;
-                        }
-                    }
-                    return false;
-                case AddressFamily.InterNetworkV6:
-                    if (internetAddress.IsIPv6LinkLocal)
-                    {
-                        return true;
-                    }
-                    else
-                    {
-                        foreach (var s in LocalSubnets)
-                        {
-                            if (Network.IsAddressInSubnet(internetAddress.ToString(), s))
-                            {
-                                return true;
-                            }
-                        }
-                        return false;
-                    }
-                default:
+                if (Network.IsAddressInSubnet(internetAddress.ToString(), s))
+                {
                     return true;
+                }
             }
+
+            return false;
         }
 
 
