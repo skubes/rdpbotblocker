@@ -17,7 +17,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Install", "Install", "{04C702F3-471A-41D4-AD7B-B99B505391FE}"
 	ProjectSection(SolutionItems) = preProject
 		Install\AdaptiveFirewall.iss = Install\AdaptiveFirewall.iss
-		Inno Setup License.txt = Inno Setup License.txt
+		Install\Inno Setup License.txt = Install\Inno Setup License.txt
 		Install\innosetup-qsp-5.6.1.exe = Install\innosetup-qsp-5.6.1.exe
 	EndProjectSection
 EndProject
