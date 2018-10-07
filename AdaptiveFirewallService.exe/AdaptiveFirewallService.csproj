@@ -123,4 +123,7 @@
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>powershell -file $(SolutionDir)Install\BuildInstaller.ps1  $(Configuration)</PostBuildEvent>
+  </PropertyGroup>
 </Project>

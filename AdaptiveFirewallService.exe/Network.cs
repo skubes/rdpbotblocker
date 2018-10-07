@@ -36,7 +36,7 @@ namespace SCAdaptiveFirewall
             if (sad.AddressFamily == AddressFamily.InterNetworkV6)
             {
                 var mask = Parse("00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
-                    HexNumber) << (128 - s.MaskBits);
+                    HexNumber, InvariantCulture) << (128 - s.MaskBits);
 
                 maskoctets = new[]
                 {
