@@ -12,7 +12,7 @@ try {
 }
 catch {
 	Write-Error -ErrorRecord $_
-	Write-Output "Couldn't detect Inno Setup installed on this system."
+	Write-Output "Couldn't detect Inno Setup installed on this system. Skipping installer build."
 	Write-Output "If it's not installed, run innosetup-qsp-5.6.1.exe (in folder $scriptFolder)"
 	Write-Output "or go to: http://www.jrsoftware.org/isdl.php"
 	Write-Output "The .iss file was tested with Inno Setup v5.6.1"

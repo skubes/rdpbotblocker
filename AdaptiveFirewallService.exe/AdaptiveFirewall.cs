@@ -170,7 +170,7 @@ namespace SCAdaptiveFirewall
 
             if (IsLocalAddress(ad))
             {
-                WriteInfo($"{isf.IP} is local address. Skipping.");
+                WriteInfo($"No action required for {isf.IP}, it is a local address.");
                 return;
             }
 
