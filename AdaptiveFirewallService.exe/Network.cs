@@ -16,8 +16,7 @@ namespace SCAdaptiveFirewall
         /// https://stackoverflow.com/questions/1499269/how-to-check-if-an-ip-address-is-within-a-particular-subnet
         /// </summary>
         /// <param name="ip"></param>
-        /// <param name="subnetaddress"></param>
-        /// <param name="maskbits"></param>
+        /// <param name="s"></param>
         /// <returns></returns>
         public static bool IsAddressInSubnet(string ip, Subnet s)
         {
@@ -26,19 +25,18 @@ namespace SCAdaptiveFirewall
                 return false;
             }
 
-            var sad = s.IPAddressObject;
-            var adbytes = ad.GetAddressBytes();
-            var sadbytes = sad.GetAddressBytes();
-            IPAddress mad;
-            byte[] madbytes;
-            byte[] maskoctets;
+            var networkAddress = s.IPAddressObject;
+            var IPAddressBytes = ad.GetAddressBytes();
+            var networkAddressBytes = networkAddress.GetAddressBytes();
 
-            if (sad.AddressFamily == AddressFamily.InterNetworkV6)
+            byte[] subnetMaskOctets;
+
+            if (networkAddress.AddressFamily == AddressFamily.InterNetworkV6)
             {
                 var mask = Parse("00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
                     HexNumber, InvariantCulture) << (128 - s.MaskBits);
 
-                maskoctets = new[]
+                subnetMaskOctets = new[]
                 {
                     (byte)((mask & Parse("00FF000000000000000000000000000000", HexNumber, InvariantCulture)) >> 120),
                     (byte)((mask & Parse("0000FF0000000000000000000000000000", HexNumber, InvariantCulture)) >> 112),
@@ -58,10 +56,10 @@ namespace SCAdaptiveFirewall
                     (byte)((mask & Parse("00000000000000000000000000000000FF", HexNumber, InvariantCulture)) >> 0),
                 };
             }
-            else if (sad.AddressFamily == AddressFamily.InterNetwork)
+            else if (networkAddress.AddressFamily == AddressFamily.InterNetwork)
             {
                 uint mask = 0xFFFFFFFF << (32 - s.MaskBits);
-                maskoctets = new[]
+                subnetMaskOctets = new[]
                 {
                     (byte)((mask & 0xFF000000) >> 24),
                     (byte)((mask & 0x00FF0000) >> 16),
@@ -76,22 +74,22 @@ namespace SCAdaptiveFirewall
                 return false;
             }
 
-            mad = new IPAddress(maskoctets);
-            madbytes = mad.GetAddressBytes();
+            var subnetMaskAddress = new IPAddress(subnetMaskOctets);
+            var subnetMaskAddressBytes = subnetMaskAddress.GetAddressBytes();
 
-            if (adbytes.Length != madbytes.Length
-                || sadbytes.Length != adbytes.Length)
+            if (IPAddressBytes.Length != subnetMaskAddressBytes.Length
+                || networkAddressBytes.Length != IPAddressBytes.Length)
             {
                 return false;
             }
 
-            for (int i = 0; i < adbytes.Length; ++i)
+            for (int i = 0; i < IPAddressBytes.Length; ++i)
             {
-                var addressOctet = adbytes[i];
-                var subnetOctet = madbytes[i];
-                var networkOctet = sadbytes[i];
+                var addressOctet = IPAddressBytes[i];
+                var subnetMaskOctet = subnetMaskAddressBytes[i];
+                var networkOctet = networkAddressBytes[i];
 
-                if ((networkOctet & subnetOctet) != (addressOctet & subnetOctet)) return false;
+                if ((networkOctet & subnetMaskOctet) != (addressOctet & subnetMaskOctet)) return false;
             }
 
             return true;
