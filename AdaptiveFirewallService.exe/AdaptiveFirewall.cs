@@ -397,12 +397,12 @@ namespace SCAdaptiveFirewall
                 }
                 catch (ArgumentOutOfRangeException e)
                 {
-                    WriteInfo(e.Message);
+                    WriteInfo($"Failure while parsing LocalSubnets config setting for entry {entry}. Error: {e.Message}");
                     continue;
                 }
                 catch (FormatException)
                 {
-                    WriteInfo($"Failure while parsing LocalSubnets config setting. Couldn't convert '{parts[1]}' to an int for entry {entry}");
+                    WriteInfo($"Failure while parsing LocalSubnets config setting for entry {entry}. Couldn't convert '{parts[1]}' to an int");
                     continue;
                 }
                 catch (IndexOutOfRangeException)
