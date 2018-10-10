@@ -20,7 +20,7 @@ OutputBaseFilename=AdaptiveFirewallSetup
 SetupLogging=no
 
 [Files]
-Source: "..\AdaptiveFirewallService.exe\bin\{#BuildConfiguration}\AdaptiveFirewallService.exe"; DestDir: "{app}"
+Source: "..\AdaptiveFirewallService.exe\bin\{#BuildConfiguration}\AdaptiveFirewallService.exe"; DestDir: "{app}"; Flags: replacesameversion
 Source: "..\AdaptiveFirewallService.exe\bin\{#BuildConfiguration}\AdaptiveFirewallService.exe.config"; DestDir: "{app}"; Flags: onlyifdoesntexist
 
 [run]
