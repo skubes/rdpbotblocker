@@ -11,38 +11,20 @@ using System.Configuration;
 using System.Globalization;
 using System.Collections.ObjectModel;
 using System.Net;
-using System.Net.Sockets;
 
 namespace SCAdaptiveFirewall
 {
     public partial class AdaptiveFirewall : ServiceBase
     {
-        IPInfo _ipdeets = new IPInfo();
-        static readonly Object _loglock;
-        static readonly StreamWriter _log;
+
+        static readonly Object _loglock = new object ();
+        static readonly StreamWriter _log = InitLog();
+        static readonly string _blockscript = LoadBlockScript();
+
         readonly EventLogWatcher _seclogwatcher;
         readonly EventLogWatcher _rdplogwatcher;
         readonly Object _datalock = new object();
-        public static Collection<Subnet> LocalSubnets { get; private set; }
-        static string _blockscript = LoadBlockScript();
-
-        private static string LoadBlockScript()
-        {
-            MemoryStream ms = null;
-            try
-            {
-                ms = new MemoryStream(Properties.Resources.BlockIp);
-                using (var sr = new StreamReader(ms))
-                {
-                    ms = null;
-                    return sr.ReadToEnd();
-                }
-            }
-            finally
-            {
-                ms?.Dispose();
-            }
-        }
+        readonly IPInfo _ipdeets = new IPInfo();
 
         /// <summary>
         ///  Constructor
@@ -76,18 +58,53 @@ namespace SCAdaptiveFirewall
         }
 
         /// <summary>
-        ///  Static constructor
+        /// Get's the Powershell Script used to edit Windows Firewall
+        /// from .exe embedded resources. Block.ps1 is copied there during
+        /// compilation.
         /// </summary>
-        static AdaptiveFirewall()
+        /// <returns></returns>
+        private static string LoadBlockScript()
         {
-            _loglock = new object();
+            MemoryStream ms = null;
+            try
+            {
+                ms = new MemoryStream(Properties.Resources.BlockIp);
+                using (var sr = new StreamReader(ms))
+                {
+                    ms = null;
+                    return sr.ReadToEnd();
+                }
+            }
+            finally
+            {
+                ms?.Dispose();
+            }
+        }
+        /// <summary>
+        ///  Setup log file in user's temp
+        ///  folder. For localservice it's c:\windows\temp
+        /// </summary>
+        static StreamWriter InitLog()
+        {
             var logpath = Path.Combine(Path.GetTempPath(), "AdaptiveFirewall.log");
-            _log = new StreamWriter(logpath, true);
-            _log.AutoFlush = true;
-            PopulateLocalSubnets();
+            StreamWriter log = null;
+            try
+            {
+                log = new StreamWriter(logpath, true);
+                log.AutoFlush = true;
+            }
+            catch
+            {
+                log?.Dispose();
+                throw;
+            }
+             
+            return log;
+
         }
 
         public int SecFailureCountThreshold { get; } = 5;
+        public static Collection<Subnet> LocalSubnets { get; private set; } = LoadLocalSubnets();
 
         /// <summary>
         /// Override method called by Windows when starting
@@ -311,6 +328,10 @@ namespace SCAdaptiveFirewall
             }
         }
 
+        public static void ReloadLocalSubnets()
+        {
+            LocalSubnets = LoadLocalSubnets();
+        }
         /// <summary>
         /// Given an IP string, block address using
         /// PowerShell script.
@@ -338,10 +359,10 @@ namespace SCAdaptiveFirewall
         }
 
         /// <summary>
-        ///  Read config file appsetting "LocalSubnets" and update
-        ///  corresponding list of Subnet objects.
+        ///  Read config file appsetting "LocalSubnets" and return
+        ///  list of local subnets.
         /// </summary>
-        public static void PopulateLocalSubnets()
+        public static Collection<Subnet> LoadLocalSubnets()
         {
             var sublist = new Collection<Subnet>();
 
@@ -357,8 +378,7 @@ namespace SCAdaptiveFirewall
             var subsconfig = ConfigurationManager.AppSettings["LocalSubnets"];
             if (subsconfig == null)
             {
-                LocalSubnets = sublist;
-                return;
+                return sublist;
             }
 
             var subs = subsconfig.Split(',');
@@ -393,7 +413,7 @@ namespace SCAdaptiveFirewall
                 if (s != null)
                     sublist.Add(s);
             }
-            LocalSubnets = sublist;
+            return sublist;
         }
     }
 

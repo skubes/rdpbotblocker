@@ -49,7 +49,7 @@ namespace AdaptiveFirewallService.Test
         public void LoadWithhLocalSubnetsSetting(string setting, int expectedCount)
         {
             ConfigurationManager.AppSettings.Set("LocalSubnets", setting);
-            AdaptiveFirewall.PopulateLocalSubnets();
+            AdaptiveFirewall.ReloadLocalSubnets();
             var subs = AdaptiveFirewall.LocalSubnets;
             Assert.AreEqual(subs.Count, expectedCount);
         }
@@ -66,7 +66,7 @@ namespace AdaptiveFirewallService.Test
         public void DetermineIfIpIsLocal(string ip, string setting, bool expected)
         {
             ConfigurationManager.AppSettings.Set("LocalSubnets", setting);
-            AdaptiveFirewall.PopulateLocalSubnets();
+            AdaptiveFirewall.ReloadLocalSubnets();
             var ipobj = IPAddress.Parse(ip);
             var res = AdaptiveFirewall.IsLocalAddress(ipobj);
             Assert.AreEqual(res, expected);
