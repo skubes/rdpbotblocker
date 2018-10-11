@@ -11,12 +11,12 @@ using System.Configuration;
 using System.Globalization;
 using System.Collections.ObjectModel;
 using System.Net;
+using static System.FormattableString;
 
 namespace SCAdaptiveFirewall
 {
     public partial class AdaptiveFirewall : ServiceBase
     {
-
         static readonly Object _loglock = new object ();
         static readonly StreamWriter _log = InitLog();
         static readonly string _blockscript = LoadBlockScript();
@@ -135,7 +135,7 @@ namespace SCAdaptiveFirewall
         {
             lock (_loglock)
             {
-                _log.WriteLine($"[{DateTime.Now.ToString("o").Replace('T',' ')} TID:{Thread.CurrentThread.ManagedThreadId:000}] {infomessage}");
+                _log.WriteLine(Invariant($"[{DateTime.Now.ToString("o", CultureInfo.InvariantCulture).Replace('T',' ')} TID:{Thread.CurrentThread.ManagedThreadId:000}] {infomessage}"));
             }
         }
 
@@ -156,11 +156,11 @@ namespace SCAdaptiveFirewall
                 stopwatch.Stop();
                 if (stopwatch.Elapsed.TotalMilliseconds > 500)
                 {
-                    WriteInfo($"Took [{stopwatch.Elapsed.TotalSeconds}] seconds to process event");
+                    WriteInfo(Invariant($"Took [{stopwatch.Elapsed.TotalSeconds}] seconds to process event"));
                 }
                 else
                 {
-                    WriteInfo($"Took [{stopwatch.Elapsed.TotalMilliseconds}] milliseconds to process event");
+                    WriteInfo(Invariant($"Took [{stopwatch.Elapsed.TotalMilliseconds}] milliseconds to process event"));
                 }
             }
         }
@@ -172,7 +172,7 @@ namespace SCAdaptiveFirewall
         /// <param name="er"></param>
        void ProcessEvent(EventRecord er)
         {
-            WriteInfo($"Received event {er.Id} from the subscription.");
+            WriteInfo(Invariant($"Received event {er.Id} from the subscription."));
 
             var isf = ParseEvent(er);
 
@@ -260,7 +260,7 @@ namespace SCAdaptiveFirewall
         /// <param name="isf"></param>
         void BlockIpIfNecessary(InterestingSecurityFailure isf)
         {
-            WriteInfo($"[Event {isf.EventId}] IP: [{isf.IP}]");
+            WriteInfo(Invariant($"[Event {isf.EventId}] IP: [{isf.IP}]"));
             // just straight up block event 140 ips for now!! as a test:)
             if (isf.EventId == 140)
             {
@@ -285,8 +285,8 @@ namespace SCAdaptiveFirewall
                  secfailures = _ipdeets[isf.IP].Count;
             }
 
-            WriteInfo($"[Event {isf.EventId}] Count in last hour: [{secfailures}]");
-            WriteInfo($"[Event {isf.EventId}] User: [{isf.UserName}] Domain: [{isf.Domain}]");
+            WriteInfo(Invariant($"[Event {isf.EventId}] Count in last hour: [{secfailures}]"));
+            WriteInfo(Invariant($"[Event {isf.EventId}] User: [{isf.UserName}] Domain: [{isf.Domain}]"));
 
             if (secfailures >= SecFailureCountThreshold)
             {
@@ -350,11 +350,11 @@ namespace SCAdaptiveFirewall
             var res = PowerShellHelper.RunPowerShellScript(_blockscript, dict);
             foreach (var e in res.Errors)
             {
-                WriteInfo($"{e}");
+                WriteInfo(Invariant($"{e}"));
             }
             foreach (var i in res.Information)
             {
-                WriteInfo($"{i}");
+                WriteInfo(Invariant($"{i}"));
             }
         }
 
@@ -397,17 +397,17 @@ namespace SCAdaptiveFirewall
                 }
                 catch (ArgumentOutOfRangeException e)
                 {
-                    WriteInfo($"Failure while parsing LocalSubnets config setting for entry {entry}. Error: {e.Message}");
+                    WriteInfo($"Failure while parsing LocalSubnets config setting for entry [{entry}]. Error: {e.Message}");
                     continue;
                 }
                 catch (FormatException)
                 {
-                    WriteInfo($"Failure while parsing LocalSubnets config setting for entry {entry}. Couldn't convert '{parts[1]}' to an int");
+                    WriteInfo($"Failure while parsing LocalSubnets config setting for entry [{entry}]. Couldn't convert '{parts[1]}' to an int");
                     continue;
                 }
                 catch (IndexOutOfRangeException)
                 {
-                    WriteInfo($"Failure while parsing LocalSubnets config setting for entry {entry}. Make sure value is in CIDR notation (address/maskbits) for example '18.42.124.13/20");
+                    WriteInfo($"Failure while parsing LocalSubnets config setting for entry [{entry}]. Make sure value is in CIDR notation (address/maskbits) for example '18.42.124.13/20'");
                     continue;
                 }
                 if (s != null)
