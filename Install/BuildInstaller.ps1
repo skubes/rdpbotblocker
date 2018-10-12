@@ -1,7 +1,6 @@
 param(
-	[Parameter(Mandatory=$true)]
 	[ValidateSet("Debug","Release")]
-	$BuildConfiguration
+	$BuildConfiguration = "Release"
 )
 
 $scriptFolder = Split-Path -Parent $MyInvocation.MyCommand.Definition
