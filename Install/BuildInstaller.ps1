@@ -3,6 +3,11 @@ param(
 	$BuildConfiguration = "Release"
 )
 
+if ($env:SkipInstallerBuildEvent -eq 'true')
+{
+	return
+}
+
 $scriptFolder = Split-Path -Parent $MyInvocation.MyCommand.Definition
 
 # Get Inno Setup install folder from registry (assumes x64 Windows)
