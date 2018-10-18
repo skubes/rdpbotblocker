@@ -204,7 +204,7 @@ namespace SCAdaptiveFirewall
             var xml = new XmlDocument();
             xml.LoadXml(eventRecord.ToXml());
             var ns = new XmlNamespaceManager(xml.NameTable);
-            ns.AddNamespace("a", "http://schemas.microsoft.com/win/2004/08/events/evnt");
+            ns.AddNamespace("a", "http://schemas.microsoft.com/win/2004/08/events/event");
 
             var isf = new InterestingSecurityFailure
             {
