@@ -215,7 +215,7 @@ namespace SCAdaptiveFirewall
             switch (eventRecord.Id)
             {
                 case 4625:
-                    isf.IP = (xml.SelectSingleNode("//a:Data[@Name=\"IpAddress\"]", ns))?.InnerText;
+                    isf.IP = (xml.SelectSingleNode("//a:Data[@Name=\"IpAddresss\"]", ns))?.InnerText;
                     isf.UserName = (xml.SelectSingleNode("//a:Data[@Name=\"TargetUserName\"]", ns))?.InnerText;
                     isf.Domain = (xml.SelectSingleNode("//a:Data[@Name=\"TargetDomainName\"]", ns))?.InnerText;
                     break;
