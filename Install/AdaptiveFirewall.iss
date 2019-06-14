@@ -10,7 +10,7 @@
 [Setup]
 AppName=Adaptive Firewall
 AppVersion=1.0
-DefaultDirName={pf}\Adaptive Firewall
+DefaultDirName={autopf}\Adaptive Firewall
 DisableProgramGroupPage=yes
 UninstallDisplayIcon={app}\AdaptiveFirewallService.exe
 Compression=lzma2
@@ -18,6 +18,7 @@ SolidCompression=yes
 OutputDir=Output\{#BuildConfiguration}
 OutputBaseFilename=AdaptiveFirewallSetup
 SetupLogging=no
+WizardStyle=modern
 
 [Files]
 Source: "..\AdaptiveFirewallService.exe\bin\{#BuildConfiguration}\AdaptiveFirewallService.exe"; DestDir: "{app}"; Flags: replacesameversion

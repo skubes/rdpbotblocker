@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27703.2042
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29009.5
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdaptiveFirewallService", "AdaptiveFirewallService.exe\AdaptiveFirewallService.csproj", "{F5CF2918-E489-47F4-8AF1-954C6D6D86CE}"
 EndProject
@@ -17,7 +17,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Install", "Install", "{04C7
 		Install\AdaptiveFirewall.iss = Install\AdaptiveFirewall.iss
 		Install\BuildInstaller.ps1 = Install\BuildInstaller.ps1
 		Install\Inno Setup License.txt = Install\Inno Setup License.txt
-		Install\innosetup-qsp-5.6.1.exe = Install\innosetup-qsp-5.6.1.exe
+		Install\innosetup-qsp-6.0.2.exe = Install\innosetup-qsp-6.0.2.exe
 	EndProjectSection
 EndProject
 Global
