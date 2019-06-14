@@ -1,6 +1,6 @@
 ; Installer script for Inno setup
 ;
-; Created and tested w/ 5.6.1
+; Last tested w/ Inno 6.0.2
 ; http://www.jrsoftware.org/isdl.php
 
 #ifndef BuildConfiguration
