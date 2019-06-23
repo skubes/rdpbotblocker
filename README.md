@@ -15,7 +15,7 @@ This program requires Windows with Windows Management Framework 5.1 installed an
 A feature of this Windows service is that it hosts Powershell scripts inside it's process.  This enables easy management of Windows Firewall with simple powershell scripts instead of more verbose c# code.
 
 ## Building
-Open .sln file with Visual Studio 2017 and build the solution in Debug or Release mode.
+Open .sln file with Visual Studio 2019 and build the solution in Debug or Release mode.
 
 ## Installing and configuring
 The build will produce an installer in both Debug and Release mode.  See Install folder in the repository and install Inno Setup to enable the installer.
