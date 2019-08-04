@@ -127,8 +127,7 @@ namespace SCAdaptiveFirewall
             _rdplogwatcher.Enabled = false;
         }
         /// <summary>
-        /// Writes line of output to diag log in
-        /// temp folder
+        /// Writes line of output to diag log
         /// </summary>
         /// <param name="infomessage"></param>
         static void WriteInfo(string infomessage)
